@@ -1,0 +1,323 @@
+:root {
+    --bg-color: #f3f3f3;
+    --text-color: #444444;
+    --primary-color: #7495e9;
+    --card-bg: #ffffff;
+    --border-color: #dddddd;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+}
+
+header {
+    background-color: var(--card-bg);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.container {
+    padding: 2rem;
+}
+
+.card {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+h1, h2, h3 {
+    color: var(--text-color);
+}
+
+/* CORRECTED .hidden RULE */
+.hidden {
+    display: none !important; /* Use !important to ensure it always hides */
+}
+
+/* Forms */
+form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+input, select, button {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+/* Tables */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.data-table th, .data-table td {
+    border: 1px solid var(--border-color);
+    padding: 0.75rem;
+    text-align: left;
+}
+
+.data-table th {
+    background-color: var(--bg-color);
+}
+
+.data-table img {
+    max-width: 60px;
+    height: auto;
+    border-radius: 4px;
+}
+
+/* Grid layout */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    background: #fafafa;
+    padding: 0.5rem;
+    border: 1px solid #eee;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+}
+
+.item-list-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.item-card {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    text-align: center;
+    background-color: #fafafa;
+    position: relative; /* For positioning action buttons */
+}
+
+.item-card img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+}
+
+.item-card span {
+    display: block;
+    padding: 0.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+/* Judge Dashboard Styles */
+.welcome-banner {
+    background-color: var(--primary-color);
+    color: white;
+}
+.welcome-banner h2, .welcome-banner p {
+    color: white;
+}
+.segments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+.segment-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+}
+.segment-card h3 { margin-top: 0; }
+.segment-card p { flex-grow: 1; }
+.judge-now-btn { width: 100%; padding: 0.75rem; }
+
+/* Judging Sheet Styles */
+.judging-table-container { overflow-x: auto; width: 100%; }
+.judging-table { width: 100%; white-space: nowrap; }
+.judging-table .score-input { width: 80px; text-align: center; }
+#submit-scores-btn { width: auto; padding: 0.75rem 2rem; margin-top: 1.5rem; }
+
+/* Action Buttons */
+.actions-cell { display: flex; gap: 0.5rem; }
+.btn-edit { background-color: #f0ad4e; }
+.btn-delete { background-color: #d9534f; }
+.btn-edit, .btn-delete { padding: 0.3rem 0.6rem; font-size: 0.8rem; border: none; color: white; border-radius: 4px; cursor: pointer; }
+.item-card .actions-cell { position: absolute; top: 5px; right: 5px; }
+ul li { display: flex; justify-content: space-between; align-items: center; }
+
+/* CORRECTED MODAL STYLES */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex; /* This is how it's visible by default */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    /* REMOVED visibility: hidden; */
+}
+
+.modal-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+.modal-header h2 { margin: 0; }
+.close-btn { background: none; border: none; font-size: 2rem; cursor: pointer; color: var(--text-color); }
+#edit-form { display: flex; flex-direction: column; }
+#edit-form .form-group { margin-bottom: 1rem; }
+#edit-form label { display: block; margin-bottom: 0.5rem; }
+#edit-form input, #edit-form select { width: 100%; box-sizing: border-box; }
+.nav-button { background-color: #6c757d; color: white; padding: 0.5rem 1rem; text-decoration: none; border-radius: 4px; }
+.winner-type-header { margin-top: 2rem; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; }
+.winner-card h3 { margin-bottom: 0.5rem; }
+.winner-details { display: flex; align-items: center; gap: 1rem; }
+.winner-details img { width: 80px; height: 80px; object-fit: cover; border-radius: 50%; }
+.winner-details p { font-size: 1.2rem; font-weight: 500; margin: 0; }
+/* === NEW DASHBOARD LAYOUT STYLES === */
+
+.dashboard-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+.sidebar {
+    width: 300px;
+    flex-shrink: 0;
+}
+
+.main-content {
+    flex-grow: 1;
+}
+
+.item-list {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 1rem;
+}
+
+.item-list li {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.contest-list-item {
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.contest-list-item:hover {
+    background-color: #e9e9e9;
+}
+
+.contest-list-item.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.vertical-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.vertical-form > * {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* === NEW JUDGE DASHBOARD STYLES === */
+.contest-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+.contest-card {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.contest-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+.contest-card-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+.contest-card-body h3 {
+    margin-top: 0;
+    flex-grow: 1;
+}
+.judge-now-btn,
+a.judge-now-btn {
+    display: block;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+    text-decoration: none;
+}
