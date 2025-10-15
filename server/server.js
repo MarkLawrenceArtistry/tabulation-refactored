@@ -33,7 +33,32 @@ const authenticateToken = (req, res, next) => { const authHeader = req.headers['
 const authorizeRoles = (...allowedRoles) => { return (req, res, next) => { if (!req.user || !allowedRoles.includes(req.user.role)) { return res.status(403).json({ message: 'Access denied.' }); } next(); }; };
 
 // --- TABULATION FUNCTION ---
-const calculateAndEmitResults = () => { const sql = `WITH JudgeSegmentScores AS (SELECT sc.judge_id, sc.candidate_id, s.id as segment_id, s.contest_id, SUM(sc.score * (cr.max_score / 100.0)) as total_raw_segment_score FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id JOIN segments s ON cr.segment_id = s.id GROUP BY sc.judge_id, sc.candidate_id, s.id), AvgSegmentScores AS (SELECT candidate_id, segment_id, contest_id, AVG(total_raw_segment_score) as avg_segment_score FROM JudgeSegmentScores GROUP BY candidate_id, segment_id), FinalScores AS (SELECT c.id as candidate_id, SUM(ags.avg_segment_score * (s.percentage / 100.0)) as total_score FROM candidates c LEFT JOIN AvgSegmentScores ags ON c.id = ags.candidate_id LEFT JOIN segments s ON ags.segment_id = s.id GROUP BY c.id) SELECT cand.id, cand.name, cand.candidate_number, cand.image_url, cont.id as contest_id, cont.name as contest_name, fs.total_score FROM candidates cand JOIN contests cont ON cand.contest_id = cont.id LEFT JOIN FinalScores fs ON cand.id = fs.candidate_id ORDER BY cont.id, fs.total_score DESC;`; db.all(sql, [], (err, results) => { if (err) { console.error("Error calculating results:", err.message); return; } const groupedResults = results.reduce((acc, row) => { const { contest_name } = row; if (!acc[contest_name]) { acc[contest_name] = []; } acc[contest_name].push(row); return acc; }, {}); io.emit('update_results', groupedResults); }); };
+const calculateAndEmitResults = () => {
+    // This SQL query is correct, no changes needed here.
+    const sql = `WITH JudgeSegmentScores AS (SELECT sc.judge_id, sc.candidate_id, s.id as segment_id, s.contest_id, SUM(sc.score * (cr.max_score / 100.0)) as total_raw_segment_score FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id JOIN segments s ON cr.segment_id = s.id GROUP BY sc.judge_id, sc.candidate_id, s.id), AvgSegmentScores AS (SELECT candidate_id, segment_id, contest_id, AVG(total_raw_segment_score) as avg_segment_score FROM JudgeSegmentScores GROUP BY candidate_id, segment_id), FinalScores AS (SELECT c.id as candidate_id, SUM(ags.avg_segment_score * (s.percentage / 100.0)) as total_score FROM candidates c LEFT JOIN AvgSegmentScores ags ON c.id = ags.candidate_id LEFT JOIN segments s ON ags.segment_id = s.id GROUP BY c.id) SELECT cand.id, cand.name, cand.candidate_number, cand.image_url, cont.id as contest_id, cont.name as contest_name, fs.total_score FROM candidates cand JOIN contests cont ON cand.contest_id = cont.id LEFT JOIN FinalScores fs ON cand.id = fs.candidate_id ORDER BY cont.id, fs.total_score DESC;`;
+    
+    db.all(sql, [], (err, results) => {
+        if (err) {
+            console.error("Error calculating results:", err.message);
+            return;
+        }
+        
+        // This is the logic causing the issue.
+        // It groups results into an object, which the front-end doesn't expect.
+        /*
+        const groupedResults = results.reduce((acc, row) => {
+            const { contest_name } = row;
+            if (!acc[contest_name]) { acc[contest_name] = []; }
+            acc[contest_name].push(row);
+            return acc;
+        }, {});
+        */
+        
+        // ** THE FIX IS HERE **
+        // We will emit the flat 'results' array directly.
+        io.emit('update_results', results); 
+    });
+};
 
 // --- SOCKET.IO CONNECTION ---
 io.on('connection', (socket) => { console.log('A user connected'); calculateAndEmitResults(); socket.on('disconnect', () => console.log('User disconnected')); });
