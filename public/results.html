@@ -13,14 +13,18 @@
     </header>
     <main class="container">
         <div class="card">
-            <h2>Leaderboard</h2>
+        <div class="leaderboard-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 id="leaderboard-title">Leaderboard</h2>
+            <select id="contest-leaderboard-select">
+                <option value="">Loading contests...</option>
+            </select>
+        </div>
             <table class="data-table">
                 <thead>
                     <tr>
                         <th>Rank</th>
                         <th>Photo</th>
                         <th>Candidate</th>
-                        <th>Contest</th>
                         <th>Total Score</th>
                     </tr>
                 </thead>

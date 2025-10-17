@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('add-candidate-form').addEventListener('submit', handleAddCandidate);
     document.getElementById('add-segment-form').addEventListener('submit', handleAddSegment);
     document.getElementById('add-criteria-form').addEventListener('submit', handleAddCriterion);
+    document.getElementById('criteria-segment-select').addEventListener('change', handleSegmentSelectionChange);
 
     // Event delegation for dynamically created elements
     document.body.addEventListener('click', e => {
@@ -394,4 +395,14 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(`Failed to update ${type}:`, error);
         }
     });
+
+    function handleSegmentSelectionChange(e) {
+        const segmentId = e.target.value;
+        if (segmentId) {
+            loadCriteriaForSegment(segmentId);
+        } else {
+            // If the user selects "-- Select a segment --", clear the list
+            document.getElementById('criteria-display').innerHTML = '';
+        }
+    }
 });
