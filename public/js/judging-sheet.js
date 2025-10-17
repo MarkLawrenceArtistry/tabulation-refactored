@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const currentSegment = segmentsForContest.find(s => s.id == segmentId);
         
         document.getElementById('segment-name-header').textContent = currentSegment.name;
-        populateTable(criteria, candidates);
+        populateCandidateCards(criteria, candidates);
         setupFormSubmission(contestId);
 
     } catch (error) {
@@ -35,23 +35,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-function populateTable(criteria, candidates) {
-    const tableHead = document.getElementById('judging-table-head');
-    const tableBody = document.getElementById('judging-table-body');
+function populateCandidateCards(criteria, candidates) {
+    const container = document.getElementById('judging-cards-container');
+    container.innerHTML = ''; // Clear previous data
 
-    let headerHtml = '<tr><th>Candidate</th>';
-    criteria.forEach(c => { headerHtml += `<th>${c.name} (${c.max_score}%)</th>`; });
-    headerHtml += '</tr>';
-    tableHead.innerHTML = headerHtml;
+    if (candidates.length === 0) {
+        container.innerHTML = '<p>There are no candidates for this segment.</p>';
+        return;
+    }
 
-    tableBody.innerHTML = ''; // Clear previous data
     candidates.forEach(candidate => {
-        let rowHtml = `<tr><td><strong>#${candidate.candidate_number}</strong> ${candidate.name}</td>`;
+        const card = document.createElement('div');
+        card.className = 'candidate-judging-card';
+
+        // Build the list of criteria inputs for this specific candidate
+        let criteriaHtml = '';
         criteria.forEach(c => {
-            rowHtml += `<td><input type="number" class="score-input" min="0" max="100" required placeholder="1-100" data-candidate-id="${candidate.id}" data-criterion-id="${c.id}"></td>`;
+            criteriaHtml += `
+                <div class="criterion-item">
+                    <label for="score-${candidate.id}-${c.id}">${c.name} (${c.max_score}%)</label>
+                    <input type="number" id="score-${candidate.id}-${c.id}" class="score-input"
+                        min="0" max="100" placeholder="0-100" required
+                        data-candidate-id="${candidate.id}" data-criterion-id="${c.id}">
+                </div>
+            `;
         });
-        rowHtml += '</tr>';
-        tableBody.innerHTML += rowHtml;
+
+        // --- NEW STRUCTURE ---
+        // Combine all details into the final card HTML, matching the new CSS
+        const imageUrl = candidate.image_url || '/images/placeholder.png';
+        const details = [candidate.branch, candidate.course, candidate.section, candidate.year_level].filter(Boolean).join(' - ');
+
+        card.innerHTML = `
+            <img src="${imageUrl}" alt="${candidate.name}" class="card-image">
+            <div class="card-content">
+                <div class="candidate-info">
+                    <h3>#${candidate.candidate_number} ${candidate.name}</h3>
+                    <p>${details || 'No additional details'}</p>
+                </div>
+                <div class="criteria-list">
+                    ${criteriaHtml}
+                </div>
+            </div>
+        `;
+
+        container.appendChild(card);
     });
 }
 

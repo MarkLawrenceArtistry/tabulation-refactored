@@ -72,7 +72,16 @@ app.get('/api/contests', authenticateToken, (req, res) => { db.all("SELECT * FRO
 app.post('/api/contests', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => { const { name } = req.body; const imageUrl = req.file ? `/uploads/${req.file.filename}` : null; db.run('INSERT INTO contests (name, image_url) VALUES (?, ?)', [name, imageUrl], function(err) { res.status(201).json({ id: this.lastID, name, imageUrl }); }); });
 app.delete('/api/contests/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM contests WHERE id = ?', [req.params.id], (err) => res.sendStatus(204)); });
 app.get('/api/contests/:contestId/candidates', authenticateToken, (req, res) => { db.all("SELECT * FROM candidates WHERE contest_id = ?", [req.params.contestId], (err, rows) => res.json(rows)); });
-app.post('/api/candidates', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => { const { name, candidate_number, contest_id } = req.body; if (!name || !candidate_number || !contest_id) return res.status(400).json({ message: "Missing fields."}); const imageUrl = req.file ? `/uploads/${req.file.filename}` : null; db.run('INSERT INTO candidates (name, candidate_number, contest_id, image_url) VALUES (?, ?, ?, ?)', [name, candidate_number, contest_id, imageUrl], function(err) { if(err) return res.status(500).json({message: "DB error."}); res.status(201).json({ id: this.lastID }); }); });
+app.post('/api/candidates', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => {
+    const { name, candidate_number, contest_id, branch, course, section, year_level } = req.body;
+    if (!name || !candidate_number || !contest_id) return res.status(400).json({ message: "Missing required fields."});
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    const sql = `INSERT INTO candidates (name, candidate_number, contest_id, image_url, branch, course, section, year_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+    db.run(sql, [name, candidate_number, contest_id, imageUrl, branch, course, section, year_level], function(err) {
+        if(err) return res.status(500).json({message: "DB error creating candidate."});
+        res.status(201).json({ id: this.lastID });
+    });
+});
 app.delete('/api/candidates/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM candidates WHERE id = ?', [req.params.id], () => res.sendStatus(204)); });
 app.get('/api/contests/:contestId/segments', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.all("SELECT * FROM segments WHERE contest_id = ?", [req.params.contestId], (err, rows) => res.json(rows)); });
 app.post('/api/segments', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { const { name, percentage, contest_id } = req.body; db.run('INSERT INTO segments (name, percentage, contest_id) VALUES (?, ?, ?)', [name, percentage, contest_id], function(err) { res.status(201).json({ id: this.lastID }); }); });
@@ -92,9 +101,10 @@ app.put('/api/contests/:id', authenticateToken, authorizeRoles('admin', 'superad
 });
 
 app.put('/api/candidates/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => {
-    const { name, candidate_number } = req.body;
+    const { name, candidate_number, branch, course, section, year_level } = req.body;
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.existing_image_url;
-    db.run('UPDATE candidates SET name = ?, candidate_number = ?, image_url = ? WHERE id = ?', [name, candidate_number, imageUrl, req.params.id], function(err) {
+    const sql = `UPDATE candidates SET name = ?, candidate_number = ?, image_url = ?, branch = ?, course = ?, section = ?, year_level = ? WHERE id = ?`;
+    db.run(sql, [name, candidate_number, imageUrl, branch, course, section, year_level, req.params.id], function(err) {
         if (err) return res.status(500).json({ message: 'DB Error updating candidate.' });
         res.json({ message: 'Candidate updated successfully.' });
     });

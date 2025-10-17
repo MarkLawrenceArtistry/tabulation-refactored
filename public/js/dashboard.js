@@ -266,14 +266,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 break;
             case 'candidate':
+                // Helper to prevent 'null' or 'undefined' from appearing in the input value
+                const val = (field) => data[field] || ''; 
                 fieldsHtml = `
                     <div class="form-group">
                         <label for="edit-name">Candidate Name</label>
-                        <input type="text" id="edit-name" name="name" value="${data.name}" required>
+                        <input type="text" id="edit-name" name="name" value="${val('name')}" required>
                     </div>
                     <div class="form-group">
                         <label for="edit-candidate_number">Candidate Number</label>
-                        <input type="number" id="edit-candidate_number" name="candidate_number" value="${data.candidate_number}" required>
+                        <input type="number" id="edit-candidate_number" name="candidate_number" value="${val('candidate_number')}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-branch">Branch</label>
+                        <input type="text" id="edit-branch" name="branch" value="${val('branch')}">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-course">Course</label>
+                        <input type="text" id="edit-course" name="course" value="${val('course')}">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-section">Section</label>
+                        <input type="text" id="edit-section" name="section" value="${val('section')}">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-year_level">Year Level</label>
+                        <input type="text" id="edit-year_level" name="year_level" value="${val('year_level')}">
                     </div>
                     <div class="form-group">
                         <label for="edit-image">Update Image (Optional)</label>
