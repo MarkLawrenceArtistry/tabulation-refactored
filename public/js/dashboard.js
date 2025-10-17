@@ -67,7 +67,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('contests-list');
         list.innerHTML = '';
         contests.forEach(contest => {
-            list.innerHTML += `<li class="contest-list-item" data-id="${contest.id}" data-name="${contest.name}">${contest.name}</li>`;
+            list.innerHTML += `
+                <li class="contest-list-item" data-id="${contest.id}" data-name="${contest.name}">
+                    <span>${contest.name}</span>
+                    <div class="actions-cell">
+                        <button class="btn-edit" data-id="${contest.id}" data-type="contest">Edit</button>
+                    </div>
+                </li>`;
         });
     }
 
@@ -89,7 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
             tableBody.innerHTML += `<tr>
                 <td><img src="${imageUrl}" alt="${c.name}"></td>
                 <td>${c.candidate_number}</td><td>${c.name}</td>
-                <td class="actions-cell"><button class="btn-delete" data-id="${c.id}" data-type="candidate" data-name="${c.name}">Delete</button></td>
+                <td class="actions-cell">
+                    <button class="btn-edit" data-id="${c.id}" data-type="candidate">Edit</button>
+                    <button class="btn-delete" data-id="${c.id}" data-type="candidate" data-name="${c.name}">Delete</button>
+                </td>
             </tr>`;
         });
     }
@@ -101,7 +110,14 @@ document.addEventListener('DOMContentLoaded', () => {
         list.innerHTML = '';
         select.innerHTML = '<option value="">Select a segment first</option>';
         segments.forEach(segment => {
-            list.innerHTML += `<li class="segment-list-item" data-id="${segment.id}">${segment.name} (${segment.percentage}%)<button class="btn-delete" data-id="${segment.id}" data-type="segment" data-name="${segment.name}">Delete</button></li>`;
+            list.innerHTML += `
+                <li class="segment-list-item" data-id="${segment.id}">
+                    <span>${segment.name} (${segment.percentage}%)</span>
+                    <div class="actions-cell">
+                        <button class="btn-edit" data-id="${segment.id}" data-type="segment">Edit</button>
+                        <button class="btn-delete" data-id="${segment.id}" data-type="segment" data-name="${segment.name}">Delete</button>
+                    </div>
+                </li>`;
             select.innerHTML += `<option value="${segment.id}">${segment.name}</option>`;
         });
     }
@@ -111,7 +127,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const display = document.getElementById('criteria-display');
         display.innerHTML = '';
         criteria.forEach(c => {
-            display.innerHTML += `<li class="criteria-list-item">${c.name} (${c.max_score}%)<button class="btn-delete" data-id="${c.id}" data-type="criterium" data-name="${c.name}">Delete</button></li>`;
+            display.innerHTML += `
+                <li class="criteria-list-item">
+                    <span>${c.name} (${c.max_score}%)</span>
+                    <div class="actions-cell">
+                        <button class="btn-edit" data-id="${c.id}" data-type="criterion">Edit</button>
+                        <button class="btn-delete" data-id="${c.id}" data-type="criterium" data-name="${c.name}">Delete</button>
+                    </div>
+                </li>`;
         });
     }
 
@@ -187,4 +210,133 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+
+    // --- EDIT MODAL LOGIC ---
+    const modalOverlay = document.getElementById('edit-modal-overlay');
+    const modalTitle = document.getElementById('edit-modal-title');
+    const editForm = document.getElementById('edit-form');
+    const editFormFields = document.getElementById('edit-form-fields');
+    let currentEditData = {};
+
+    function openModal() { modalOverlay.classList.remove('hidden'); }
+    function closeModal() { modalOverlay.classList.add('hidden'); }
+
+    document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+    document.getElementById('cancel-edit-btn').addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+
+    // Delegated click listener for edit buttons
+    document.body.addEventListener('click', e => {
+        if (e.target.matches('.btn-edit')) {
+            handleEditClick(e.target);
+        }
+    });
+
+    async function handleEditClick(button) {
+        const { id, type } = button.dataset;
+        currentEditData = { id, type };
+
+        modalTitle.textContent = `Edit ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+
+        try {
+            // Map type to API endpoint name
+            let apiType = type === 'criterion' ? 'criteria' : `${type}s`;
+            const data = await apiRequest(`/api/${apiType}/${id}`);
+            populateEditForm(data, type);
+            openModal();
+        } catch (error) {
+            console.error(`Failed to fetch ${type} data:`, error);
+        }
+    }
+
+    function populateEditForm(data, type) {
+        let fieldsHtml = '';
+        switch(type) {
+            case 'contest':
+                fieldsHtml = `
+                    <div class="form-group">
+                        <label for="edit-name">Contest Name</label>
+                        <input type="text" id="edit-name" name="name" value="${data.name}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-image">Update Image (Optional)</label>
+                        <input type="file" id="edit-image" name="image" accept="image/*">
+                        ${data.image_url ? `<img src="${data.image_url}" class="current-image-preview" alt="Current Image"><input type="hidden" name="existing_image_url" value="${data.image_url}">` : ''}
+                    </div>
+                `;
+                break;
+            case 'candidate':
+                fieldsHtml = `
+                    <div class="form-group">
+                        <label for="edit-name">Candidate Name</label>
+                        <input type="text" id="edit-name" name="name" value="${data.name}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-candidate_number">Candidate Number</label>
+                        <input type="number" id="edit-candidate_number" name="candidate_number" value="${data.candidate_number}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-image">Update Image (Optional)</label>
+                        <input type="file" id="edit-image" name="image" accept="image/*">
+                        ${data.image_url ? `<img src="${data.image_url}" class="current-image-preview" alt="Current Image"><input type="hidden" name="existing_image_url" value="${data.image_url}">` : ''}
+                    </div>
+                `;
+                break;
+            case 'segment':
+                fieldsHtml = `
+                    <div class="form-group">
+                        <label for="edit-name">Segment Name</label>
+                        <input type="text" id="edit-name" name="name" value="${data.name}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-percentage">Percentage (%)</label>
+                        <input type="number" id="edit-percentage" name="percentage" value="${data.percentage}" required>
+                    </div>
+                `;
+                break;
+            case 'criterion':
+                fieldsHtml = `
+                    <div class="form-group">
+                        <label for="edit-name">Criterion Name</label>
+                        <input type="text" id="edit-name" name="name" value="${data.name}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-max_score">Weight (%)</label>
+                        <input type="number" id="edit-max_score" name="max_score" value="${data.max_score}" required>
+                    </div>
+                `;
+                break;
+        }
+        editFormFields.innerHTML = fieldsHtml;
+    }
+
+    editForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const { id, type } = currentEditData;
+        
+        let apiType = type === 'criterion' ? 'criteria' : `${type}s`;
+        const endpoint = `/api/${apiType}/${id}`;
+        
+        const formData = new FormData(e.target);
+
+        // For segments and criteria, we send JSON, not FormData
+        let body = (type === 'contest' || type === 'candidate') ? formData : Object.fromEntries(formData.entries());
+
+        try {
+            await apiRequest(endpoint, 'PUT', body);
+            closeModal();
+            
+            // Refresh the relevant part of the UI
+            if (type === 'contest') {
+                loadContests();
+            } else if (selectedContestId) {
+                // This re-selects the contest, which reloads all its children data
+                const selectedContestName = document.querySelector(`.contest-list-item[data-id='${selectedContestId}'] span`).textContent;
+                selectContest(selectedContestId, selectedContestName);
+            }
+
+        } catch (error) {
+            console.error(`Failed to update ${type}:`, error);
+        }
+    });
 });

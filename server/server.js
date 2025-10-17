@@ -81,6 +81,56 @@ app.get('/api/segments/:segmentId/criteria', authenticateToken, authorizeRoles('
 app.post('/api/criteria', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { const { name, max_score, segment_id } = req.body; db.run('INSERT INTO criteria (name, max_score, segment_id) VALUES (?, ?, ?)', [name, max_score, segment_id], function(err) { res.status(201).json({ id: this.lastID }); }); });
 app.delete('/api/criteria/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM criteria WHERE id = ?', [req.params.id], () => res.sendStatus(204)); });
 
+// --- UPDATE (PUT) ROUTES ---
+app.put('/api/contests/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => {
+    const { name } = req.body;
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.existing_image_url; // Keep old image if new one not provided
+    db.run('UPDATE contests SET name = ?, image_url = ? WHERE id = ?', [name, imageUrl, req.params.id], function(err) {
+        if (err) return res.status(500).json({ message: 'DB Error updating contest.' });
+        res.json({ message: 'Contest updated successfully.' });
+    });
+});
+
+app.put('/api/candidates/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => {
+    const { name, candidate_number } = req.body;
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.existing_image_url;
+    db.run('UPDATE candidates SET name = ?, candidate_number = ?, image_url = ? WHERE id = ?', [name, candidate_number, imageUrl, req.params.id], function(err) {
+        if (err) return res.status(500).json({ message: 'DB Error updating candidate.' });
+        res.json({ message: 'Candidate updated successfully.' });
+    });
+});
+
+app.put('/api/segments/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { name, percentage } = req.body;
+    db.run('UPDATE segments SET name = ?, percentage = ? WHERE id = ?', [name, percentage, req.params.id], function(err) {
+        if (err) return res.status(500).json({ message: 'DB Error updating segment.' });
+        res.json({ message: 'Segment updated successfully.' });
+    });
+});
+
+app.put('/api/criteria/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { name, max_score } = req.body;
+    db.run('UPDATE criteria SET name = ?, max_score = ? WHERE id = ?', [name, max_score, req.params.id], function(err) {
+        if (err) return res.status(500).json({ message: 'DB Error updating criterion.' });
+        res.json({ message: 'Criterion updated successfully.' });
+    });
+});
+
+// --- GET SINGLE ITEM ROUTES (for populating edit forms) ---
+const createGetByIdRoute = (tableName) => {
+    app.get(`/api/${tableName}/:id`, authenticateToken, (req, res) => {
+        db.get(`SELECT * FROM ${tableName} WHERE id = ?`, [req.params.id], (err, row) => {
+            if (err) return res.status(500).json({ message: `DB Error fetching ${tableName}.` });
+            if (!row) return res.status(404).json({ message: 'Item not found.'});
+            res.json(row);
+        });
+    });
+};
+createGetByIdRoute('contests');
+createGetByIdRoute('candidates');
+createGetByIdRoute('segments');
+createGetByIdRoute('criteria');
+
 // --- JUDGING FLOW (WITH NEW ROUTE) ---
 app.get('/api/judging/contests', authenticateToken, authorizeRoles('judge'), (req, res) => { const sql = `SELECT DISTINCT c.* FROM contests c JOIN segments s ON c.id = s.contest_id WHERE s.id NOT IN (SELECT cr.segment_id FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id WHERE sc.judge_id = ?)`; db.all(sql, [req.user.id], (err, rows) => { if (err) return res.status(500).json({ message: "DB error" }); res.json(rows); }); });
 app.get('/api/judging/contests/:contestId/segments', authenticateToken, authorizeRoles('judge'), (req, res) => { const sql = `SELECT * FROM segments s WHERE s.contest_id = ? AND s.id NOT IN (SELECT cr.segment_id FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id WHERE sc.judge_id = ?)`; db.all(sql, [req.params.contestId, req.user.id], (err, rows) => { if (err) return res.status(500).json({ message: "DB error" }); res.json(rows); }); });
