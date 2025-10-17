@@ -68,6 +68,56 @@ app.post('/api/auth/login', (req, res) => { const { username, password } = req.b
 app.get('/api/users', authenticateToken, authorizeRoles('superadmin'), (req, res) => { db.all("SELECT id, username, role FROM users", [], (err, rows) => res.json(rows)); });
 app.post('/api/users', authenticateToken, authorizeRoles('superadmin'), (req, res) => { const { username, password, role } = req.body; bcrypt.hash(password, 10, (err, hash) => { db.run(`INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)`, [username, hash, role], function (err) { if (err) return res.status(409).json({ message: 'Username exists.' }); res.status(201).json({ id: this.lastID, username, role }); }); }); });
 app.delete('/api/users/:id', authenticateToken, authorizeRoles('superadmin'), (req, res) => { if (req.user.id == req.params.id) return res.status(403).json({ message: "Cannot delete self." }); db.run('DELETE FROM users WHERE id = ?', [req.params.id], (err) => res.sendStatus(204)); });
+// GET A SINGLE USER's DETAILS
+app.get('/api/users/:id', authenticateToken, authorizeRoles('superadmin'), (req, res) => {
+    const sql = "SELECT id, username, role FROM users WHERE id = ?";
+    db.get(sql, [req.params.id], (err, row) => {
+        if (err) return res.status(500).json({ message: "DB Error." });
+        if (!row) return res.status(404).json({ message: "User not found." });
+        res.json(row);
+    });
+});
+
+// UPDATE A USER's DETAILS
+app.put('/api/users/:id', authenticateToken, authorizeRoles('superadmin'), (req, res) => {
+    const { username, role, password } = req.body;
+    const userId = req.params.id;
+
+    if (!username || !role) {
+        return res.status(400).json({ message: "Username and role are required." });
+    }
+
+    // If a new password is provided, hash it. Otherwise, we don't update the password.
+    if (password) {
+        bcrypt.hash(password, 10, (err, hash) => {
+            if (err) return res.status(500).json({ message: "Error hashing password." });
+            
+            const sql = `UPDATE users SET username = ?, role = ?, password_hash = ? WHERE id = ?`;
+            db.run(sql, [username, role, hash, userId], function(err) {
+                if (err) {
+                    // This error typically means the username is already taken
+                    if (err.message.includes('UNIQUE constraint failed')) {
+                         return res.status(409).json({ message: 'Username already exists.' });
+                    }
+                    return res.status(500).json({ message: "DB Error updating user." });
+                }
+                res.json({ message: 'User updated successfully.' });
+            });
+        });
+    } else {
+        // No new password, so we only update username and role
+        const sql = `UPDATE users SET username = ?, role = ? WHERE id = ?`;
+        db.run(sql, [username, role, userId], function(err) {
+             if (err) {
+                if (err.message.includes('UNIQUE constraint failed')) {
+                     return res.status(409).json({ message: 'Username already exists.' });
+                }
+                return res.status(500).json({ message: "DB Error updating user." });
+            }
+            res.json({ message: 'User updated successfully.' });
+        });
+    }
+});
 app.get('/api/contests', authenticateToken, (req, res) => { db.all("SELECT * FROM contests", [], (err, rows) => res.json(rows)); });
 app.post('/api/contests', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => { const { name } = req.body; const imageUrl = req.file ? `/uploads/${req.file.filename}` : null; db.run('INSERT INTO contests (name, image_url) VALUES (?, ?)', [name, imageUrl], function(err) { res.status(201).json({ id: this.lastID, name, imageUrl }); }); });
 app.delete('/api/contests/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM contests WHERE id = ?', [req.params.id], (err) => res.sendStatus(204)); });

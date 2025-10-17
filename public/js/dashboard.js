@@ -82,7 +82,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('users-list');
         list.innerHTML = '';
         users.forEach(user => {
-            list.innerHTML += `<li class="user-list-item"><span>${user.username} (${user.role})</span><button class="btn-delete" data-id="${user.id}" data-type="user" data-name="${user.username}">Delete</button></li>`;
+            list.innerHTML += `
+                <li class="user-list-item">
+                    <span>${user.username} (${user.role})</span>
+                    <div class="actions-cell">
+                        <button class="btn-edit" data-id="${user.id}" data-type="user">Edit</button>
+                        <button class="btn-delete" data-id="${user.id}" data-type="user" data-name="${user.username}">Delete</button>
+                    </div>
+                </li>`;
         });
     }
 
@@ -323,7 +330,27 @@ document.addEventListener('DOMContentLoaded', () => {
                         <input type="number" id="edit-max_score" name="max_score" value="${data.max_score}" required>
                     </div>
                 `;
-                break;
+            case 'user':
+                const isSelf = (data.id == user.id); // Check if the user is editing themselves
+                fieldsHtml = `
+                    <div class="form-group">
+                        <label for="edit-username">Username</label>
+                        <input type="text" id="edit-username" name="username" value="${data.username}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-role">Role</label>
+                        <select id="edit-role" name="role" ${isSelf ? 'disabled' : ''}>
+                            <option value="admin" ${data.role === 'admin' ? 'selected' : ''}>Admin</option>
+                            <option value="judge" ${data.role === 'judge' ? 'selected' : ''}>Judge</option>
+                        </select>
+                        ${isSelf ? '<p style="font-size: 0.8em; color: #666;">You cannot change your own role.</p>' : ''}
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-password">New Password (Optional)</label>
+                        <input type="password" id="edit-password" name="password" placeholder="Leave blank to keep current password">
+                    </div>
+                `;
+            break;
         }
         editFormFields.innerHTML = fieldsHtml;
     }
@@ -338,7 +365,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(e.target);
 
         // For segments and criteria, we send JSON, not FormData
+        // User edits must be sent as JSON.
         let body = (type === 'contest' || type === 'candidate') ? formData : Object.fromEntries(formData.entries());
+
+        if (type === 'user') {
+            // Don't send an empty password field
+            if (!body.password) {
+                delete body.password;
+            }
+        }
 
         try {
             await apiRequest(endpoint, 'PUT', body);
@@ -347,6 +382,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Refresh the relevant part of the UI
             if (type === 'contest') {
                 loadContests();
+            } else if (type === 'user') {
+                loadUsers();
             } else if (selectedContestId) {
                 // This re-selects the contest, which reloads all its children data
                 const selectedContestName = document.querySelector(`.contest-list-item[data-id='${selectedContestId}'] span`).textContent;
