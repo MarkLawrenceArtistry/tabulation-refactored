@@ -94,6 +94,50 @@ app.get('/api/judging/segments/:segmentId/criteria', authenticateToken, authoriz
     });
 });
 app.post('/api/judging/scores', authenticateToken, authorizeRoles('judge'), (req, res) => { const { scores, contest_id } = req.body; if (!scores || !contest_id) return res.status(400).json({ message: "Missing scores or contest ID." }); const sql = `INSERT INTO scores (judge_id, candidate_id, criterion_id, score, contest_id) VALUES (?, ?, ?, ?, ?)`; db.serialize(() => { db.run("BEGIN TRANSACTION"); const stmt = db.prepare(sql); scores.forEach(s => stmt.run(req.user.id, s.candidate_id, s.criterion_id, s.score, contest_id)); stmt.finalize(err => { if (err) { db.run("ROLLBACK"); return res.status(500).json({ message: "Failed to save scores." }); } db.run("COMMIT", () => { res.status(201).json({ message: "Scores submitted." }); calculateAndEmitResults(); }); }); }); });
+app.get('/api/scores', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { contest_id, segment_id, criterion_id } = req.query;
+
+    let sql = `
+        SELECT 
+            sc.id, sc.score,
+            c.name as candidate_name,
+            j.username as judge_name,
+            cr.name as criterion_name,
+            s.name as segment_name,
+            co.name as contest_name
+        FROM scores sc
+        JOIN users j ON sc.judge_id = j.id
+        JOIN candidates c ON sc.candidate_id = c.id
+        JOIN criteria cr ON sc.criterion_id = cr.id
+        JOIN segments s ON cr.segment_id = s.id
+        JOIN contests co ON s.contest_id = co.id
+        WHERE 1=1
+    `;
+    const params = [];
+
+    if (contest_id) {
+        sql += ` AND co.id = ?`;
+        params.push(contest_id);
+    }
+    if (segment_id) {
+        sql += ` AND s.id = ?`;
+        params.push(segment_id);
+    }
+    if (criterion_id) {
+        sql += ` AND cr.id = ?`;
+        params.push(criterion_id);
+    }
+
+    sql += ` ORDER BY co.name, s.name, c.name, cr.name`;
+
+    db.all(sql, params, (err, rows) => {
+        if (err) {
+            console.error("Error fetching scores:", err.message);
+            return res.status(500).json({ message: "Database error while fetching scores." });
+        }
+        res.json(rows);
+    });
+});
 
 // --- AWARDS & PUBLIC RESULTS ---
 app.get('/api/awards', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.all("SELECT * FROM awards", [], (err, rows) => res.json(rows)); });
