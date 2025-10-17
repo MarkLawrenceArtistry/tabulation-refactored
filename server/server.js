@@ -191,8 +191,46 @@ createGetByIdRoute('criteria');
 
 // --- JUDGING FLOW (WITH NEW ROUTE) ---
 app.get('/api/judging/contests', authenticateToken, authorizeRoles('judge'), (req, res) => { const sql = `SELECT DISTINCT c.* FROM contests c JOIN segments s ON c.id = s.contest_id WHERE s.id NOT IN (SELECT cr.segment_id FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id WHERE sc.judge_id = ?)`; db.all(sql, [req.user.id], (err, rows) => { if (err) return res.status(500).json({ message: "DB error" }); res.json(rows); }); });
-app.get('/api/judging/contests/:contestId/segments', authenticateToken, authorizeRoles('judge'), (req, res) => { const sql = `SELECT * FROM segments s WHERE s.contest_id = ? AND s.id NOT IN (SELECT cr.segment_id FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id WHERE sc.judge_id = ?)`; db.all(sql, [req.params.contestId, req.user.id], (err, rows) => { if (err) return res.status(500).json({ message: "DB error" }); res.json(rows); }); });
-// ** THIS IS THE NEW, CORRECTED ROUTE **
+app.get('/api/judging/contests/:contestId/segments', authenticateToken, authorizeRoles('judge'), (req, res) => {
+    const sql = `
+        SELECT 
+            s.*,
+            CASE WHEN judged_segments.segment_id IS NOT NULL THEN 1 ELSE 0 END as is_judged
+        FROM segments s
+        LEFT JOIN (
+            SELECT DISTINCT cr.segment_id
+            FROM scores sc
+            JOIN criteria cr ON sc.criterion_id = cr.id
+            WHERE sc.judge_id = ?
+        ) as judged_segments ON s.id = judged_segments.segment_id
+        WHERE s.contest_id = ?
+    `;
+    db.all(sql, [req.user.id, req.params.contestId], (err, rows) => {
+        if (err) {
+            console.error("Error fetching all segments for judge:", err.message);
+            return res.status(500).json({ message: "DB error" });
+        }
+        res.json(rows);
+    });
+});
+app.get('/api/judging/segments/:segmentId/my-scores', authenticateToken, authorizeRoles('judge'), (req, res) => {
+    const sql = `
+        SELECT
+            s.score,
+            c.name as candidate_name,
+            c.candidate_number,
+            cr.name as criterion_name
+        FROM scores s
+        JOIN candidates c ON s.candidate_id = c.id
+        JOIN criteria cr ON s.criterion_id = cr.id
+        WHERE cr.segment_id = ? AND s.judge_id = ?
+        ORDER BY c.candidate_number, cr.id
+    `;
+    db.all(sql, [req.params.segmentId, req.user.id], (err, rows) => {
+        if (err) return res.status(500).json({ message: "DB error getting scores" });
+        res.json(rows);
+    });
+});
 app.get('/api/judging/segments/:segmentId/criteria', authenticateToken, authorizeRoles('judge'), (req, res) => {
     // A judge can only get criteria for a segment they haven't scored yet.
     // This is an implicit security check.

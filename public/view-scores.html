@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View My Scores</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <h1 id="header-title">Loading Scores...</h1>
+        <a id="back-button" href="#" class="nav-button">&larr; Back to Segments</a>
+    </header>
+    <main class="container">
+        <div class="card">
+            <h2>My Submitted Scores</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Candidate</th>
+                        <th>Criterion</th>
+                        <th>My Score</th>
+                    </tr>
+                </thead>
+                <tbody id="scores-table-body">
+                    <tr><td colspan="3">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/view-scores.js"></script>
+</body>
+</html>
