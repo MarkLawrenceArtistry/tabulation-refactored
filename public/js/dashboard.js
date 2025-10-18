@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('add-candidate-form').addEventListener('submit', handleAddCandidate);
     document.getElementById('add-segment-form').addEventListener('submit', handleAddSegment);
     document.getElementById('add-criteria-form').addEventListener('submit', handleAddCriterion);
+    document.getElementById('criteria-segment-select').addEventListener('change', handleSegmentSelectionChange);
 
     // Event delegation for dynamically created elements
     document.body.addEventListener('click', e => {
@@ -67,7 +68,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('contests-list');
         list.innerHTML = '';
         contests.forEach(contest => {
-            list.innerHTML += `<li class="contest-list-item" data-id="${contest.id}" data-name="${contest.name}">${contest.name}</li>`;
+            list.innerHTML += `
+                <li class="contest-list-item" data-id="${contest.id}" data-name="${contest.name}">
+                    <span>${contest.name}</span>
+                    <div class="actions-cell">
+                        <button class="btn-edit" data-id="${contest.id}" data-type="contest">Edit</button>
+                    </div>
+                </li>`;
         });
     }
 
@@ -76,7 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('users-list');
         list.innerHTML = '';
         users.forEach(user => {
-            list.innerHTML += `<li class="user-list-item"><span>${user.username} (${user.role})</span><button class="btn-delete" data-id="${user.id}" data-type="user" data-name="${user.username}">Delete</button></li>`;
+            list.innerHTML += `
+                <li class="user-list-item">
+                    <span>${user.username} (${user.role})</span>
+                    <div class="actions-cell">
+                        <button class="btn-edit" data-id="${user.id}" data-type="user">Edit</button>
+                        <button class="btn-delete" data-id="${user.id}" data-type="user" data-name="${user.username}">Delete</button>
+                    </div>
+                </li>`;
         });
     }
 
@@ -89,7 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
             tableBody.innerHTML += `<tr>
                 <td><img src="${imageUrl}" alt="${c.name}"></td>
                 <td>${c.candidate_number}</td><td>${c.name}</td>
-                <td class="actions-cell"><button class="btn-delete" data-id="${c.id}" data-type="candidate" data-name="${c.name}">Delete</button></td>
+                <td class="actions-cell">
+                    <button class="btn-edit" data-id="${c.id}" data-type="candidate">Edit</button>
+                    <button class="btn-delete" data-id="${c.id}" data-type="candidate" data-name="${c.name}">Delete</button>
+                </td>
             </tr>`;
         });
     }

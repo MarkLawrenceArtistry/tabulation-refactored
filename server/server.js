@@ -35,7 +35,7 @@ const authorizeRoles = (...allowedRoles) => { return (req, res, next) => { if (!
 // --- TABULATION FUNCTION ---
 const calculateAndEmitResults = () => {
     // This SQL query is correct, no changes needed here.
-    const sql = `WITH JudgeSegmentScores AS (SELECT sc.judge_id, sc.candidate_id, s.id as segment_id, s.contest_id, SUM(sc.score * (cr.max_score / 100.0)) as total_raw_segment_score FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id JOIN segments s ON cr.segment_id = s.id GROUP BY sc.judge_id, sc.candidate_id, s.id), AvgSegmentScores AS (SELECT candidate_id, segment_id, contest_id, AVG(total_raw_segment_score) as avg_segment_score FROM JudgeSegmentScores GROUP BY candidate_id, segment_id), FinalScores AS (SELECT c.id as candidate_id, SUM(ags.avg_segment_score * (s.percentage / 100.0)) as total_score FROM candidates c LEFT JOIN AvgSegmentScores ags ON c.id = ags.candidate_id LEFT JOIN segments s ON ags.segment_id = s.id GROUP BY c.id) SELECT cand.id, cand.name, cand.candidate_number, cand.image_url, cont.id as contest_id, cont.name as contest_name, fs.total_score FROM candidates cand JOIN contests cont ON cand.contest_id = cont.id LEFT JOIN FinalScores fs ON cand.id = fs.candidate_id ORDER BY cont.id, fs.total_score DESC;`;
+    const sql = `WITH JudgeSegmentScores AS (SELECT sc.judge_id, sc.candidate_id, s.id as segment_id, s.contest_id, SUM(sc.score * (cr.max_score / 100.0)) as total_raw_segment_score FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id JOIN segments s ON cr.segment_id = s.id GROUP BY sc.judge_id, sc.candidate_id, s.id), AvgSegmentScores AS (SELECT candidate_id, segment_id, contest_id, AVG(total_raw_segment_score) as avg_segment_score FROM JudgeSegmentScores GROUP BY candidate_id, segment_id), FinalScores AS (SELECT c.id as candidate_id, SUM(ags.avg_segment_score * (s.percentage / 100.0)) as total_score FROM candidates c LEFT JOIN AvgSegmentScores ags ON c.id = ags.candidate_id LEFT JOIN segments s ON ags.segment_id = s.id GROUP BY c.id) SELECT cand.id, cand.name as candidate_name, cand.candidate_number, cand.image_url, cont.id as contest_id, cont.name as contest_name, fs.total_score FROM candidates cand JOIN contests cont ON cand.contest_id = cont.id LEFT JOIN FinalScores fs ON cand.id = fs.candidate_id ORDER BY cont.id, fs.total_score DESC;`;
     
     db.all(sql, [], (err, results) => {
         if (err) {
@@ -43,20 +43,18 @@ const calculateAndEmitResults = () => {
             return;
         }
         
-        // This is the logic causing the issue.
-        // It groups results into an object, which the front-end doesn't expect.
-        /*
         const groupedResults = results.reduce((acc, row) => {
             const { contest_name } = row;
-            if (!acc[contest_name]) { acc[contest_name] = []; }
+            // If the contest isn't a key in our accumulator object yet, create it with an empty array.
+            if (!acc[contest_name]) { 
+                acc[contest_name] = []; 
+            }
+            // Push the current candidate's result into the correct contest's array.
             acc[contest_name].push(row);
             return acc;
         }, {});
-        */
-        
-        // ** THE FIX IS HERE **
-        // We will emit the flat 'results' array directly.
-        io.emit('update_results', results); 
+
+        io.emit('update_results', groupedResults); 
     });
 };
 
@@ -68,11 +66,70 @@ app.post('/api/auth/login', (req, res) => { const { username, password } = req.b
 app.get('/api/users', authenticateToken, authorizeRoles('superadmin'), (req, res) => { db.all("SELECT id, username, role FROM users", [], (err, rows) => res.json(rows)); });
 app.post('/api/users', authenticateToken, authorizeRoles('superadmin'), (req, res) => { const { username, password, role } = req.body; bcrypt.hash(password, 10, (err, hash) => { db.run(`INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)`, [username, hash, role], function (err) { if (err) return res.status(409).json({ message: 'Username exists.' }); res.status(201).json({ id: this.lastID, username, role }); }); }); });
 app.delete('/api/users/:id', authenticateToken, authorizeRoles('superadmin'), (req, res) => { if (req.user.id == req.params.id) return res.status(403).json({ message: "Cannot delete self." }); db.run('DELETE FROM users WHERE id = ?', [req.params.id], (err) => res.sendStatus(204)); });
+// GET A SINGLE USER's DETAILS
+app.get('/api/users/:id', authenticateToken, authorizeRoles('superadmin'), (req, res) => {
+    const sql = "SELECT id, username, role FROM users WHERE id = ?";
+    db.get(sql, [req.params.id], (err, row) => {
+        if (err) return res.status(500).json({ message: "DB Error." });
+        if (!row) return res.status(404).json({ message: "User not found." });
+        res.json(row);
+    });
+});
+
+// UPDATE A USER's DETAILS
+app.put('/api/users/:id', authenticateToken, authorizeRoles('superadmin'), (req, res) => {
+    const { username, role, password } = req.body;
+    const userId = req.params.id;
+
+    if (!username || !role) {
+        return res.status(400).json({ message: "Username and role are required." });
+    }
+
+    // If a new password is provided, hash it. Otherwise, we don't update the password.
+    if (password) {
+        bcrypt.hash(password, 10, (err, hash) => {
+            if (err) return res.status(500).json({ message: "Error hashing password." });
+            
+            const sql = `UPDATE users SET username = ?, role = ?, password_hash = ? WHERE id = ?`;
+            db.run(sql, [username, role, hash, userId], function(err) {
+                if (err) {
+                    // This error typically means the username is already taken
+                    if (err.message.includes('UNIQUE constraint failed')) {
+                         return res.status(409).json({ message: 'Username already exists.' });
+                    }
+                    return res.status(500).json({ message: "DB Error updating user." });
+                }
+                res.json({ message: 'User updated successfully.' });
+            });
+        });
+    } else {
+        // No new password, so we only update username and role
+        const sql = `UPDATE users SET username = ?, role = ? WHERE id = ?`;
+        db.run(sql, [username, role, userId], function(err) {
+             if (err) {
+                if (err.message.includes('UNIQUE constraint failed')) {
+                     return res.status(409).json({ message: 'Username already exists.' });
+                }
+                return res.status(500).json({ message: "DB Error updating user." });
+            }
+            res.json({ message: 'User updated successfully.' });
+        });
+    }
+});
 app.get('/api/contests', authenticateToken, (req, res) => { db.all("SELECT * FROM contests", [], (err, rows) => res.json(rows)); });
 app.post('/api/contests', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => { const { name } = req.body; const imageUrl = req.file ? `/uploads/${req.file.filename}` : null; db.run('INSERT INTO contests (name, image_url) VALUES (?, ?)', [name, imageUrl], function(err) { res.status(201).json({ id: this.lastID, name, imageUrl }); }); });
 app.delete('/api/contests/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM contests WHERE id = ?', [req.params.id], (err) => res.sendStatus(204)); });
 app.get('/api/contests/:contestId/candidates', authenticateToken, (req, res) => { db.all("SELECT * FROM candidates WHERE contest_id = ?", [req.params.contestId], (err, rows) => res.json(rows)); });
-app.post('/api/candidates', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => { const { name, candidate_number, contest_id } = req.body; if (!name || !candidate_number || !contest_id) return res.status(400).json({ message: "Missing fields."}); const imageUrl = req.file ? `/uploads/${req.file.filename}` : null; db.run('INSERT INTO candidates (name, candidate_number, contest_id, image_url) VALUES (?, ?, ?, ?)', [name, candidate_number, contest_id, imageUrl], function(err) { if(err) return res.status(500).json({message: "DB error."}); res.status(201).json({ id: this.lastID }); }); });
+app.post('/api/candidates', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => {
+    const { name, candidate_number, contest_id, branch, course, section, year_level } = req.body;
+    if (!name || !candidate_number || !contest_id) return res.status(400).json({ message: "Missing required fields."});
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    const sql = `INSERT INTO candidates (name, candidate_number, contest_id, image_url, branch, course, section, year_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+    db.run(sql, [name, candidate_number, contest_id, imageUrl, branch, course, section, year_level], function(err) {
+        if(err) return res.status(500).json({message: "DB error creating candidate."});
+        res.status(201).json({ id: this.lastID });
+    });
+});
 app.delete('/api/candidates/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM candidates WHERE id = ?', [req.params.id], () => res.sendStatus(204)); });
 app.get('/api/contests/:contestId/segments', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.all("SELECT * FROM segments WHERE contest_id = ?", [req.params.contestId], (err, rows) => res.json(rows)); });
 app.post('/api/segments', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { const { name, percentage, contest_id } = req.body; db.run('INSERT INTO segments (name, percentage, contest_id) VALUES (?, ?, ?)', [name, percentage, contest_id], function(err) { res.status(201).json({ id: this.lastID }); }); });
@@ -81,10 +138,99 @@ app.get('/api/segments/:segmentId/criteria', authenticateToken, authorizeRoles('
 app.post('/api/criteria', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { const { name, max_score, segment_id } = req.body; db.run('INSERT INTO criteria (name, max_score, segment_id) VALUES (?, ?, ?)', [name, max_score, segment_id], function(err) { res.status(201).json({ id: this.lastID }); }); });
 app.delete('/api/criteria/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM criteria WHERE id = ?', [req.params.id], () => res.sendStatus(204)); });
 
+// --- UPDATE (PUT) ROUTES ---
+app.put('/api/contests/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => {
+    const { name } = req.body;
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.existing_image_url; // Keep old image if new one not provided
+    db.run('UPDATE contests SET name = ?, image_url = ? WHERE id = ?', [name, imageUrl, req.params.id], function(err) {
+        if (err) return res.status(500).json({ message: 'DB Error updating contest.' });
+        res.json({ message: 'Contest updated successfully.' });
+    });
+});
+
+app.put('/api/candidates/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => {
+    const { name, candidate_number, branch, course, section, year_level } = req.body;
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.existing_image_url;
+    const sql = `UPDATE candidates SET name = ?, candidate_number = ?, image_url = ?, branch = ?, course = ?, section = ?, year_level = ? WHERE id = ?`;
+    db.run(sql, [name, candidate_number, imageUrl, branch, course, section, year_level, req.params.id], function(err) {
+        if (err) return res.status(500).json({ message: 'DB Error updating candidate.' });
+        res.json({ message: 'Candidate updated successfully.' });
+    });
+});
+
+app.put('/api/segments/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { name, percentage } = req.body;
+    db.run('UPDATE segments SET name = ?, percentage = ? WHERE id = ?', [name, percentage, req.params.id], function(err) {
+        if (err) return res.status(500).json({ message: 'DB Error updating segment.' });
+        res.json({ message: 'Segment updated successfully.' });
+    });
+});
+
+app.put('/api/criteria/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { name, max_score } = req.body;
+    db.run('UPDATE criteria SET name = ?, max_score = ? WHERE id = ?', [name, max_score, req.params.id], function(err) {
+        if (err) return res.status(500).json({ message: 'DB Error updating criterion.' });
+        res.json({ message: 'Criterion updated successfully.' });
+    });
+});
+
+// --- GET SINGLE ITEM ROUTES (for populating edit forms) ---
+const createGetByIdRoute = (tableName) => {
+    app.get(`/api/${tableName}/:id`, authenticateToken, (req, res) => {
+        db.get(`SELECT * FROM ${tableName} WHERE id = ?`, [req.params.id], (err, row) => {
+            if (err) return res.status(500).json({ message: `DB Error fetching ${tableName}.` });
+            if (!row) return res.status(404).json({ message: 'Item not found.'});
+            res.json(row);
+        });
+    });
+};
+createGetByIdRoute('contests');
+createGetByIdRoute('candidates');
+createGetByIdRoute('segments');
+createGetByIdRoute('criteria');
+
 // --- JUDGING FLOW (WITH NEW ROUTE) ---
 app.get('/api/judging/contests', authenticateToken, authorizeRoles('judge'), (req, res) => { const sql = `SELECT DISTINCT c.* FROM contests c JOIN segments s ON c.id = s.contest_id WHERE s.id NOT IN (SELECT cr.segment_id FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id WHERE sc.judge_id = ?)`; db.all(sql, [req.user.id], (err, rows) => { if (err) return res.status(500).json({ message: "DB error" }); res.json(rows); }); });
-app.get('/api/judging/contests/:contestId/segments', authenticateToken, authorizeRoles('judge'), (req, res) => { const sql = `SELECT * FROM segments s WHERE s.contest_id = ? AND s.id NOT IN (SELECT cr.segment_id FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id WHERE sc.judge_id = ?)`; db.all(sql, [req.params.contestId, req.user.id], (err, rows) => { if (err) return res.status(500).json({ message: "DB error" }); res.json(rows); }); });
-// ** THIS IS THE NEW, CORRECTED ROUTE **
+app.get('/api/judging/contests/:contestId/segments', authenticateToken, authorizeRoles('judge'), (req, res) => {
+    const sql = `
+        SELECT 
+            s.*,
+            CASE WHEN judged_segments.segment_id IS NOT NULL THEN 1 ELSE 0 END as is_judged
+        FROM segments s
+        LEFT JOIN (
+            SELECT DISTINCT cr.segment_id
+            FROM scores sc
+            JOIN criteria cr ON sc.criterion_id = cr.id
+            WHERE sc.judge_id = ?
+        ) as judged_segments ON s.id = judged_segments.segment_id
+        WHERE s.contest_id = ?
+    `;
+    db.all(sql, [req.user.id, req.params.contestId], (err, rows) => {
+        if (err) {
+            console.error("Error fetching all segments for judge:", err.message);
+            return res.status(500).json({ message: "DB error" });
+        }
+        res.json(rows);
+    });
+});
+app.get('/api/judging/segments/:segmentId/my-scores', authenticateToken, authorizeRoles('judge'), (req, res) => {
+    const sql = `
+        SELECT
+            s.score,
+            c.name as candidate_name,
+            c.candidate_number,
+            cr.name as criterion_name
+        FROM scores s
+        JOIN candidates c ON s.candidate_id = c.id
+        JOIN criteria cr ON s.criterion_id = cr.id
+        WHERE cr.segment_id = ? AND s.judge_id = ?
+        ORDER BY c.candidate_number, cr.id
+    `;
+    db.all(sql, [req.params.segmentId, req.user.id], (err, rows) => {
+        if (err) return res.status(500).json({ message: "DB error getting scores" });
+        res.json(rows);
+    });
+});
 app.get('/api/judging/segments/:segmentId/criteria', authenticateToken, authorizeRoles('judge'), (req, res) => {
     // A judge can only get criteria for a segment they haven't scored yet.
     // This is an implicit security check.
@@ -94,6 +240,50 @@ app.get('/api/judging/segments/:segmentId/criteria', authenticateToken, authoriz
     });
 });
 app.post('/api/judging/scores', authenticateToken, authorizeRoles('judge'), (req, res) => { const { scores, contest_id } = req.body; if (!scores || !contest_id) return res.status(400).json({ message: "Missing scores or contest ID." }); const sql = `INSERT INTO scores (judge_id, candidate_id, criterion_id, score, contest_id) VALUES (?, ?, ?, ?, ?)`; db.serialize(() => { db.run("BEGIN TRANSACTION"); const stmt = db.prepare(sql); scores.forEach(s => stmt.run(req.user.id, s.candidate_id, s.criterion_id, s.score, contest_id)); stmt.finalize(err => { if (err) { db.run("ROLLBACK"); return res.status(500).json({ message: "Failed to save scores." }); } db.run("COMMIT", () => { res.status(201).json({ message: "Scores submitted." }); calculateAndEmitResults(); }); }); }); });
+app.get('/api/scores', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { contest_id, segment_id, criterion_id } = req.query;
+
+    let sql = `
+        SELECT 
+            sc.id, sc.score,
+            c.name as candidate_name,
+            j.username as judge_name,
+            cr.name as criterion_name,
+            s.name as segment_name,
+            co.name as contest_name
+        FROM scores sc
+        JOIN users j ON sc.judge_id = j.id
+        JOIN candidates c ON sc.candidate_id = c.id
+        JOIN criteria cr ON sc.criterion_id = cr.id
+        JOIN segments s ON cr.segment_id = s.id
+        JOIN contests co ON s.contest_id = co.id
+        WHERE 1=1
+    `;
+    const params = [];
+
+    if (contest_id) {
+        sql += ` AND co.id = ?`;
+        params.push(contest_id);
+    }
+    if (segment_id) {
+        sql += ` AND s.id = ?`;
+        params.push(segment_id);
+    }
+    if (criterion_id) {
+        sql += ` AND cr.id = ?`;
+        params.push(criterion_id);
+    }
+
+    sql += ` ORDER BY co.name, s.name, c.name, cr.name`;
+
+    db.all(sql, params, (err, rows) => {
+        if (err) {
+            console.error("Error fetching scores:", err.message);
+            return res.status(500).json({ message: "Database error while fetching scores." });
+        }
+        res.json(rows);
+    });
+});
 
 // --- AWARDS & PUBLIC RESULTS ---
 app.get('/api/awards', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.all("SELECT * FROM awards", [], (err, rows) => res.json(rows)); });

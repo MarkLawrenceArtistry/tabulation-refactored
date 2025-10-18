@@ -1,6 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
     const tableBody = document.getElementById('results-table-body');
+    const contestSelect = document.getElementById('contest-leaderboard-select');
+    const leaderboardTitle = document.getElementById('leaderboard-title');
+
+    let fullResults = {}; // This will store the complete grouped results object
 
     const firstPlace = document.getElementById('first-place');
     const secondPlace = document.getElementById('second-place');
