@@ -10,7 +10,7 @@ const fs = require('fs');
 const { Server } = require("socket.io");
 
 // --- CONFIGURATION ---
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 const DB_PATH = './db/tabulation.db';
 const JWT_SECRET = 'your_super_secret_key_change_this';
 
