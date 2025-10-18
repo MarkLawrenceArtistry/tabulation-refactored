@@ -1,0 +1,147 @@
+:root {
+    /* --- COLOR PALETTE  --- */
+    --primary-color: #dab856;      /* Gold */
+    --primary-darker-color: #c8a94d; /* Darker Gold for Hover */
+    --dark-color: #121212;         /* Rich Black */
+    --background-color: #f0f2f5;   /* Light Grey Background */
+    --form-bg-color: #ffffff;      /* White Form Panel */
+    --text-dark-color: #333;
+    --text-light-color: #888;
+    --border-color: #eaeaea;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: var(--background-color);
+}
+
+.login-container {
+    display: flex;
+    width: 1100px;
+    height: 700px;
+    max-width: 90vw;
+    background-color: var(--form-bg-color);
+    box-shadow: 0 20px 50px var(--shadow-color);
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+}
+
+/* --- Left Panel  --- */
+.login-left-panel {
+    flex-basis: 45%;
+    position: relative;
+    background-color: var(--dark-color); 
+}
+
+/* The S-Curve Separator */
+.login-left-panel::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -50px;
+    width: 100px;
+    height: 100%;
+    background-color: var(--form-bg-color);
+    border-radius: 50%;
+}
+
+/* --- Right Panel (Form) --- */
+.login-right-panel {
+    flex-basis: 55%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2.5rem;
+}
+
+.form-wrapper {
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+}
+
+h1 {
+    font-size: 2.8rem;
+    font-weight: 600;
+    color: var(--text-dark-color);
+    margin-bottom: 0.75rem;
+}
+
+.subtitle {
+    color: var(--text-light-color);
+    margin-bottom: 2.5rem;
+    font-size: 1rem;
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: 1.25rem;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 50px;
+    font-size: 1rem;
+    color: var(--text-dark-color);
+    transition: all 0.3s ease;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: var(--primary-color); 
+    box-shadow: 0 0 0 4px rgba(218, 184, 86, 0.15); 
+}
+
+button {
+    width: 100%;
+    padding: 1rem;
+    background-color: var(--primary-color); 
+    color: var(--dark-color); 
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    margin-top: 1.5rem;
+}
+
+button:hover {
+    background-color: var(--primary-darker-color); 
+}
+
+#error-message {
+    color: #e74c3c;
+    margin-top: 1rem;
+    min-height: 1.2em;
+}
+
+@media (max-width: 1100px) { 
+    .login-container {
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        border-radius: 0;
+    }
+    .login-left-panel {
+        display: none;
+    }
+    .login-right-panel {
+        justify-content: center;
+    }
+}

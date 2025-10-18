@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('add-candidate-form').addEventListener('submit', handleAddCandidate);
     document.getElementById('add-segment-form').addEventListener('submit', handleAddSegment);
     document.getElementById('add-criteria-form').addEventListener('submit', handleAddCriterion);
+    document.getElementById('criteria-segment-select').addEventListener('change', handleSegmentSelectionChange);
 
     // Event delegation for dynamically created elements
     document.body.addEventListener('click', e => {
@@ -67,7 +68,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('contests-list');
         list.innerHTML = '';
         contests.forEach(contest => {
-            list.innerHTML += `<li class="contest-list-item" data-id="${contest.id}" data-name="${contest.name}">${contest.name}</li>`;
+            list.innerHTML += `
+                <li class="contest-list-item" data-id="${contest.id}" data-name="${contest.name}">
+                    <span>${contest.name}</span>
+                    <div class="actions-cell">
+                        <button class="btn-edit" data-id="${contest.id}" data-type="contest">Edit</button>
+                        <button class="btn-delete" data-id="${contest.id}" data-type="contest" data-name="${contest.name}">Delete</button>
+                    </div>
+                </li>`;
         });
     }
 
@@ -76,7 +84,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('users-list');
         list.innerHTML = '';
         users.forEach(user => {
-            list.innerHTML += `<li class="user-list-item"><span>${user.username} (${user.role})</span><button class="btn-delete" data-id="${user.id}" data-type="user" data-name="${user.username}">Delete</button></li>`;
+            list.innerHTML += `
+                <li class="user-list-item">
+                    <span>${user.username} (${user.role})</span>
+                    <div class="actions-cell">
+                        <button class="btn-edit" data-id="${user.id}" data-type="user">Edit</button>
+                        <button class="btn-delete" data-id="${user.id}" data-type="user" data-name="${user.username}">Delete</button>
+                    </div>
+                </li>`;
         });
     }
 
@@ -89,7 +104,10 @@ document.addEventListener('DOMContentLoaded', () => {
             tableBody.innerHTML += `<tr>
                 <td><img src="${imageUrl}" alt="${c.name}"></td>
                 <td>${c.candidate_number}</td><td>${c.name}</td>
-                <td class="actions-cell"><button class="btn-delete" data-id="${c.id}" data-type="candidate" data-name="${c.name}">Delete</button></td>
+                <td class="actions-cell">
+                    <button class="btn-edit" data-id="${c.id}" data-type="candidate">Edit</button>
+                    <button class="btn-delete" data-id="${c.id}" data-type="candidate" data-name="${c.name}">Delete</button>
+                </td>
             </tr>`;
         });
     }
@@ -243,6 +261,152 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 selectContest(selectedContestId, document.getElementById('selected-contest-name').textContent.replace('Managing: ', ''));
             }
+        }
+    }
+
+    // --- EDIT MODAL LOGIC ---
+    const modalOverlay = document.getElementById('edit-modal-overlay');
+    const modalTitle = document.getElementById('edit-modal-title');
+    const editForm = document.getElementById('edit-form');
+    const editFormFields = document.getElementById('edit-form-fields');
+    let currentEditData = {};
+
+    function openModal() { modalOverlay.classList.remove('hidden'); }
+    function closeModal() { modalOverlay.classList.add('hidden'); }
+
+    document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+    document.getElementById('cancel-edit-btn').addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+
+    // Delegated click listener for edit buttons
+    document.body.addEventListener('click', e => {
+        if (e.target.matches('.btn-edit')) {
+            handleEditClick(e.target);
+        }
+    });
+
+    async function handleEditClick(button) {
+        const { id, type } = button.dataset;
+        currentEditData = { id, type };
+
+        modalTitle.textContent = `Edit ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+
+        try {
+            // Map type to API endpoint name
+            let apiType = type === 'criterion' ? 'criteria' : `${type}s`;
+            const data = await apiRequest(`/api/${apiType}/${id}`);
+            populateEditForm(data, type);
+            openModal();
+        } catch (error) {
+            console.error(`Failed to fetch ${type} data:`, error);
+        }
+    }
+
+    function populateEditForm(data, type) {
+        let fieldsHtml = '';
+        const user = JSON.parse(localStorage.getItem('user')); // Get current user for self-check
+
+        switch(type) {
+            case 'contest':
+                fieldsHtml = `
+                    <div class="form-group">
+                        <label for="edit-name">Contest Name</label>
+                        <input type="text" id="edit-name" name="name" value="${data.name}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-image">Update Image (Optional)</label>
+                        <input type="file" id="edit-image" name="image" accept="image/*">
+                        ${data.image_url ? `<img src="${data.image_url}" class="current-image-preview" alt="Current Image"><input type="hidden" name="existing_image_url" value="${data.image_url}">` : ''}
+                    </div>
+                `;
+                break; // Break is present
+
+            case 'candidate':
+                const val = (field) => data[field] || ''; 
+                fieldsHtml = `
+                    <div class="form-group"><label for="edit-name">Candidate Name</label><input type="text" id="edit-name" name="name" value="${val('name')}" required></div>
+                    <div class="form-group"><label for="edit-candidate_number">Candidate Number</label><input type="number" id="edit-candidate_number" name="candidate_number" value="${val('candidate_number')}" required></div>
+                    <div class="form-group"><label for="edit-branch">Branch</label><input type="text" id="edit-branch" name="branch" value="${val('branch')}"></div>
+                    <div class="form-group"><label for="edit-course">Course</label><input type="text" id="edit-course" name="course" value="${val('course')}"></div>
+                    <div class="form-group"><label for="edit-section">Section</label><input type="text" id="edit-section" name="section" value="${val('section')}"></div>
+                    <div class="form-group"><label for="edit-year_level">Year Level</label><input type="text" id="edit-year_level" name="year_level" value="${val('year_level')}"></div>
+                    <div class="form-group"><label for="edit-image">Update Image (Optional)</label><input type="file" id="edit-image" name="image" accept="image/*">${data.image_url ? `<img src="${data.image_url}" class="current-image-preview" alt="Current Image"><input type="hidden" name="existing_image_url" value="${data.image_url}">` : ''}</div>
+                `;
+                break; // Break is present
+
+            case 'segment':
+                fieldsHtml = `
+                    <div class="form-group"><label for="edit-name">Segment Name</label><input type="text" id="edit-name" name="name" value="${data.name}" required></div>
+                    <div class="form-group"><label for="edit-percentage">Percentage (%)</label><input type="number" id="edit-percentage" name="percentage" value="${data.percentage}" required></div>
+                `;
+                break; // Break is present
+
+            case 'criterion':
+                fieldsHtml = `
+                    <div class="form-group"><label for="edit-name">Criterion Name</label><input type="text" id="edit-name" name="name" value="${data.name}" required></div>
+                    <div class="form-group"><label for="edit-max_score">Weight (%)</label><input type="number" id="edit-max_score" name="max_score" value="${data.max_score}" required></div>
+                `;
+                break; // *** THIS IS THE CRITICAL FIX ***
+
+            case 'user':
+                const isSelf = (data.id == user.id);
+                fieldsHtml = `
+                    <div class="form-group"><label for="edit-username">Username</label><input type="text" id="edit-username" name="username" value="${data.username}" required></div>
+                    <div class="form-group"><label for="edit-role">Role</label><select id="edit-role" name="role" ${isSelf ? 'disabled' : ''}><option value="admin" ${data.role === 'admin' ? 'selected' : ''}>Admin</option><option value="judge" ${data.role === 'judge' ? 'selected' : ''}>Judge</option></select>${isSelf ? '<p style="font-size: 0.8em; color: #666;">You cannot change your own role.</p>' : ''}</div>
+                    <div class="form-group"><label for="edit-password">New Password (Optional)</label><input type="password" id="edit-password" name="password" placeholder="Leave blank to keep current password"></div>
+                `;
+                break; // Break is present
+        }
+        editFormFields.innerHTML = fieldsHtml;
+    }
+
+    editForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const { id, type } = currentEditData;
+        
+        let apiType = type === 'criterion' ? 'criteria' : `${type}s`;
+        const endpoint = `/api/${apiType}/${id}`;
+        
+        const formData = new FormData(e.target);
+
+        // For segments and criteria, we send JSON, not FormData
+        // User edits must be sent as JSON.
+        let body = (type === 'contest' || type === 'candidate') ? formData : Object.fromEntries(formData.entries());
+
+        if (type === 'user') {
+            // Don't send an empty password field
+            if (!body.password) {
+                delete body.password;
+            }
+        }
+
+        try {
+            await apiRequest(endpoint, 'PUT', body);
+            closeModal();
+            
+            // Refresh the relevant part of the UI
+            if (type === 'contest') {
+                loadContests();
+            } else if (type === 'user') {
+                loadUsers();
+            } else if (selectedContestId) {
+                // This re-selects the contest, which reloads all its children data
+                const selectedContestName = document.querySelector(`.contest-list-item[data-id='${selectedContestId}'] span`).textContent;
+                selectContest(selectedContestId, selectedContestName);
+            }
+
+        } catch (error) {
+            console.error(`Failed to update ${type}:`, error);
+        }
+    });
+
+    function handleSegmentSelectionChange(e) {
+        const segmentId = e.target.value;
+        if (segmentId) {
+            loadCriteriaForSegment(segmentId);
+        } else {
+            // If the user selects "-- Select a segment --", clear the list
+            document.getElementById('criteria-display').innerHTML = '';
         }
     }
 });

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Scores</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Manage Scores</h1>
+        <a href="/dashboard.html" class="nav-button">Back to Dashboard</a>
+    </header>
+    <main class="container">
+        <div class="card">
+            <h2>Filter Scores</h2>
+            <form id="filter-form">
+                <select id="contest-filter" name="contest_id">
+                    <option value="">-- All Contests --</option>
+                </select>
+                <!-- Segment and Criteria filters will be added here if needed in future -->
+                <button type="submit">Load Scores</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Submitted Scores</h2>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Contest</th>
+                            <th>Segment</th>
+                            <th>Candidate</th>
+                            <th>Criterion</th>
+                            <th>Judge</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scores-table-body">
+                        <tr><td colspan="6">Select a filter and click "Load Scores" to begin.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+    
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/manage-scores.js"></script>
+</body>
+</html>
