@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io(); 
 
-    // Elements
     const tableBody = document.getElementById('results-table-body');
     const contestSelect = document.getElementById('contest-leaderboard-select');
     const leaderboardTitle = document.getElementById('leaderboard-title');
@@ -9,39 +8,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const secondPlace = document.getElementById('second-place');
     const thirdPlace = document.getElementById('third-place');
 
-    // Store data
-    let fullResults = {};       // all contest results
-    let previousRanks = {};     // candidate_number -> previous rank
+    let fullResults = {};
+    let previousRanks = {};
+    let rowPositions = {};
 
-    // Connection status
     socket.on('connect', () => console.log('Connected to WebSocket server!'));
     socket.on('disconnect', () => {
         console.log('Disconnected from WebSocket server.');
         tableBody.innerHTML = '<tr><td colspan="5">Disconnected. Trying to reconnect...</td></tr>';
     });
 
-    // Receive updated results
     socket.on('update_results', (groupedResults) => {
-        console.log('Received updated results:', groupedResults);
         fullResults = groupedResults;
-
-        // Populate contest selector
         populateContestSelector(Object.keys(groupedResults));
-
-        // Render for currently selected contest or first available
         const selectedContest = contestSelect.value || Object.keys(fullResults)[0];
         renderPodium(selectedContest);
         renderResultsForContest(selectedContest);
     });
 
-    // Contest change
     contestSelect.addEventListener('change', () => {
         const selectedContest = contestSelect.value;
         renderPodium(selectedContest);
         renderResultsForContest(selectedContest);
     });
 
-    // Fill dropdown
     function populateContestSelector(contestNames) {
         const currentSelection = contestSelect.value;
         contestSelect.innerHTML = '';
@@ -63,82 +53,108 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Render top 3 podium for the selected contest
     function renderPodium(contestName) {
-        [firstPlace, secondPlace, thirdPlace].forEach(p => p.innerHTML = '');
+    [firstPlace, secondPlace, thirdPlace].forEach(p => p.innerHTML = '');
 
-        const results = fullResults[contestName];
-        if (!results || results.length === 0) return;
+    const results = fullResults[contestName];
+    if (!results || results.length === 0) return;
 
-        const sorted = [...results].sort((a, b) => parseFloat(b.total_score) - parseFloat(a.total_score));
-        const top3 = sorted.slice(0, 3);
+    const sorted = [...results].sort((a, b) => parseFloat(b.total_score) - parseFloat(a.total_score));
+    const top3 = sorted.slice(0, 3);
 
-        const podiumElements = [firstPlace, secondPlace, thirdPlace];
-        top3.forEach((candidate, index) => {
-            podiumElements[index].innerHTML = `
-                <img src="${candidate.image_url || '/images/placeholder.png'}" alt="${candidate.candidate_name}">
-                <div>#${candidate.candidate_number} ${candidate.candidate_name}</div>
-                <div>${isNaN(parseFloat(candidate.total_score)) ? '0.00' : parseFloat(candidate.total_score).toFixed(2)}</div>
-            `;
-        });
-    }
+    const podiumElements = [firstPlace, secondPlace, thirdPlace];
+    const podiumGradients = [
+        'linear-gradient(to bottom, #FFD700 0%, #E6BE00 60%, #B8860B 100%)', // Gold
+        'linear-gradient(to bottom, #C0C0C0 0%, #A9A9A9 60%, #707070 100%)', // Silver
+        'linear-gradient(to bottom, #CD7F32 0%, #A65E2E 60%, #8B4513 100%)'  // Bronze
+    ];
 
-    // Render leaderboard table
+    const rankLabels = ['1st', '2nd', '3rd'];
+
+    top3.forEach((candidate, index) => {
+        const element = podiumElements[index];
+        element.style.background = podiumGradients[index];
+        element.innerHTML = `
+            <img src="${candidate.image_url || '/images/placeholder.png'}" alt="${candidate.candidate_name}">
+            <div class="podium-name">#${candidate.candidate_number} ${candidate.candidate_name}</div>
+            <div class="podium-score">${isNaN(parseFloat(candidate.total_score)) ? '0.00' : parseFloat(candidate.total_score).toFixed(2)}</div>
+            <div class="podium-rank podium-rank-${index + 1}">${rankLabels[index]}</div>
+        `;
+    });
+}
+
+
     function renderResultsForContest(contestName) {
-        tableBody.innerHTML = '';
         leaderboardTitle.textContent = `Leaderboard: ${contestName || 'No Contest Selected'}`;
-
         const results = fullResults[contestName];
         if (!results || results.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="5">No results yet for this contest.</td></tr>';
             return;
         }
 
-        // Sort by score
+        // Store initial row positions (FLIP: First)
+        const oldRows = Array.from(tableBody.querySelectorAll('tr'));
+        oldRows.forEach(row => {
+            const id = row.dataset.id;
+            if (id) rowPositions[id] = row.getBoundingClientRect().top;
+        });
+
         results.sort((a, b) => parseFloat(b.total_score) - parseFloat(a.total_score));
 
+        tableBody.innerHTML = '';
         results.forEach((result, index) => {
             const rank = index + 1;
             const score = result.total_score ? parseFloat(result.total_score).toFixed(2) : '0.00';
             const imageUrl = result.image_url || '/images/placeholder.png';
-
-            // Trend logic
-            let trendHTML = '-';
             const prevRank = previousRanks[result.candidate_number];
+            let trendHTML = '-';
+
             if (prevRank) {
                 const diff = prevRank - rank;
                 if (diff > 0) trendHTML = `<span class="trend-up">▲ +${diff}</span>`;
                 else if (diff < 0) trendHTML = `<span class="trend-down">▼ ${Math.abs(diff)}</span>`;
                 else trendHTML = `<span class="trend-same">-</span>`;
-            } else trendHTML = `<span class="trend-same">-</span>`;
+            }
 
-            // Rank styling
-            const rankHTML = rank === 1 ? `<strong>${rank} ⭐</strong>` : `<strong>${rank}</strong>`;
-
-            // Build row
             const row = document.createElement('tr');
+            row.dataset.id = result.candidate_number;
+            row.classList.add('leaderboard-row');
+
+            // 🎨 Add color for Top 3
+            if (rank === 1) row.classList.add('gold-row');
+            else if (rank === 2) row.classList.add('silver-row');
+            else if (rank === 3) row.classList.add('bronze-row');
+
             row.innerHTML = `
-                <td>${rankHTML}</td>
+                <td><strong>${rank}</strong></td>
                 <td>${trendHTML}</td>
                 <td><img src="${imageUrl}" alt="${result.candidate_name}" style="width:50px; border-radius:5px;"></td>
                 <td>#${result.candidate_number} - ${result.candidate_name}</td>
                 <td>${score}</td>
             `;
 
-            // Add rank colors
-            if (rank === 1) row.classList.add('rank-1');
-            else if (rank === 2) row.classList.add('rank-2');
-            else if (rank === 3) row.classList.add('rank-3');
-            else row.classList.add(index % 2 === 0 ? 'rank-other-even' : 'rank-other-odd');
-
-            // Animation
-            setTimeout(() => row.classList.add('update-animation'), 50);
-            setTimeout(() => row.classList.remove('update-animation'), 700);
-
             tableBody.appendChild(row);
-
-            // Save rank history
             previousRanks[result.candidate_number] = rank;
+        });
+
+        // Animate movement (FLIP)
+        const newRows = Array.from(tableBody.querySelectorAll('tr'));
+        newRows.forEach(row => {
+            const id = row.dataset.id;
+            const oldTop = rowPositions[id];
+            const newTop = row.getBoundingClientRect().top;
+            if (oldTop !== undefined) {
+                const deltaY = oldTop - newTop;
+                if (Math.abs(deltaY) > 1) {
+                    row.animate([
+                        { transform: `translateY(${deltaY}px) scale(1.1)`, opacity: 0.7 },
+                        { transform: 'translateY(0) scale(1)', opacity: 1 }
+                    ], {
+                        duration: 800,
+                        easing: 'ease-in-out'
+                    });
+                }
+            }
         });
     }
 });
