@@ -65,7 +65,29 @@ io.on('connection', (socket) => { console.log('A user connected'); calculateAndE
 app.post('/api/auth/login', (req, res) => { const { username, password } = req.body; db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => { if (err || !user) return res.status(401).json({ message: 'Invalid credentials.' }); bcrypt.compare(password, user.password_hash, (err, isMatch) => { if (err || !isMatch) return res.status(401).json({ message: 'Invalid credentials.' }); const payload = { id: user.id, username: user.username, role: user.role }; const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' }); res.json({ token, user: payload }); }); }); });
 app.get('/api/users', authenticateToken, authorizeRoles('superadmin'), (req, res) => { db.all("SELECT id, username, role FROM users", [], (err, rows) => res.json(rows)); });
 app.post('/api/users', authenticateToken, authorizeRoles('superadmin'), (req, res) => { const { username, password, role } = req.body; bcrypt.hash(password, 10, (err, hash) => { db.run(`INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)`, [username, hash, role], function (err) { if (err) return res.status(409).json({ message: 'Username exists.' }); res.status(201).json({ id: this.lastID, username, role }); }); }); });
-app.delete('/api/users/:id', authenticateToken, authorizeRoles('superadmin'), (req, res) => { if (req.user.id == req.params.id) return res.status(403).json({ message: "Cannot delete self." }); db.run('DELETE FROM users WHERE id = ?', [req.params.id], (err) => res.sendStatus(204)); });
+
+app.delete('/api/users/:id', authenticateToken, authorizeRoles('superadmin'), (req, res) => {
+    const targetUserId = req.params.id;
+    if (req.user.id == targetUserId) {
+        return res.status(403).json({ message: "Cannot delete yourself." });
+    }
+
+    // Check the role of the user being deleted
+    db.get('SELECT role FROM users WHERE id = ?', [targetUserId], (err, userToDelete) => {
+        if (err) return res.status(500).json({ message: "DB error." });
+        if (!userToDelete) return res.status(404).json({ message: "User not found." });
+        if (userToDelete.role === 'superadmin') {
+            return res.status(403).json({ message: "Cannot delete another superadmin." });
+        }
+
+        // Proceed with deletion if not a superadmin
+        db.run('DELETE FROM users WHERE id = ?', [targetUserId], (err) => {
+            if (err) return res.status(500).json({ message: "Failed to delete user." });
+            res.sendStatus(204);
+        });
+    });
+});
+
 // GET A SINGLE USER's DETAILS
 app.get('/api/users/:id', authenticateToken, authorizeRoles('superadmin'), (req, res) => {
     const sql = "SELECT id, username, role FROM users WHERE id = ?";

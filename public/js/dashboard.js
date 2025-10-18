@@ -73,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span>${contest.name}</span>
                     <div class="actions-cell">
                         <button class="btn-edit" data-id="${contest.id}" data-type="contest">Edit</button>
+                        <button class="btn-delete" data-id="${contest.id}" data-type="contest" data-name="${contest.name}">Delete</button>
                     </div>
                 </li>`;
         });
@@ -175,10 +176,23 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function handleAddSegment(e) {
         e.preventDefault();
-        const formData = new FormData(e.target);
+        const form = e.target;
+        const formData = new FormData(form);
+        const newPercentage = parseFloat(formData.get('percentage'));
+
+        // --- VALIDATION LOGIC ---
+        const existingSegments = await apiRequest(`/api/contests/${selectedContestId}/segments`);
+        const currentTotal = existingSegments.reduce((sum, seg) => sum + seg.percentage, 0);
+
+        if (currentTotal + newPercentage > 100) {
+            alert(`Error: Adding this segment would bring the total to ${currentTotal + newPercentage}%. The total cannot exceed 100%.`);
+            return; // Stop the function
+        }
+        // --- END VALIDATION ---
+
         const body = { ...Object.fromEntries(formData.entries()), contest_id: selectedContestId };
         await apiRequest('/api/segments', 'POST', body);
-        e.target.reset();
+        form.reset();
         loadSegmentsForContest(selectedContestId);
     }
 
@@ -259,6 +273,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function populateEditForm(data, type) {
         let fieldsHtml = '';
+        const user = JSON.parse(localStorage.getItem('user')); // Get current user for self-check
+
         switch(type) {
             case 'contest':
                 fieldsHtml = `
@@ -272,86 +288,43 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${data.image_url ? `<img src="${data.image_url}" class="current-image-preview" alt="Current Image"><input type="hidden" name="existing_image_url" value="${data.image_url}">` : ''}
                     </div>
                 `;
-                break;
+                break; // Break is present
+
             case 'candidate':
-                // Helper to prevent 'null' or 'undefined' from appearing in the input value
                 const val = (field) => data[field] || ''; 
                 fieldsHtml = `
-                    <div class="form-group">
-                        <label for="edit-name">Candidate Name</label>
-                        <input type="text" id="edit-name" name="name" value="${val('name')}" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-candidate_number">Candidate Number</label>
-                        <input type="number" id="edit-candidate_number" name="candidate_number" value="${val('candidate_number')}" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-branch">Branch</label>
-                        <input type="text" id="edit-branch" name="branch" value="${val('branch')}">
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-course">Course</label>
-                        <input type="text" id="edit-course" name="course" value="${val('course')}">
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-section">Section</label>
-                        <input type="text" id="edit-section" name="section" value="${val('section')}">
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-year_level">Year Level</label>
-                        <input type="text" id="edit-year_level" name="year_level" value="${val('year_level')}">
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-image">Update Image (Optional)</label>
-                        <input type="file" id="edit-image" name="image" accept="image/*">
-                        ${data.image_url ? `<img src="${data.image_url}" class="current-image-preview" alt="Current Image"><input type="hidden" name="existing_image_url" value="${data.image_url}">` : ''}
-                    </div>
+                    <div class="form-group"><label for="edit-name">Candidate Name</label><input type="text" id="edit-name" name="name" value="${val('name')}" required></div>
+                    <div class="form-group"><label for="edit-candidate_number">Candidate Number</label><input type="number" id="edit-candidate_number" name="candidate_number" value="${val('candidate_number')}" required></div>
+                    <div class="form-group"><label for="edit-branch">Branch</label><input type="text" id="edit-branch" name="branch" value="${val('branch')}"></div>
+                    <div class="form-group"><label for="edit-course">Course</label><input type="text" id="edit-course" name="course" value="${val('course')}"></div>
+                    <div class="form-group"><label for="edit-section">Section</label><input type="text" id="edit-section" name="section" value="${val('section')}"></div>
+                    <div class="form-group"><label for="edit-year_level">Year Level</label><input type="text" id="edit-year_level" name="year_level" value="${val('year_level')}"></div>
+                    <div class="form-group"><label for="edit-image">Update Image (Optional)</label><input type="file" id="edit-image" name="image" accept="image/*">${data.image_url ? `<img src="${data.image_url}" class="current-image-preview" alt="Current Image"><input type="hidden" name="existing_image_url" value="${data.image_url}">` : ''}</div>
                 `;
-                break;
+                break; // Break is present
+
             case 'segment':
                 fieldsHtml = `
-                    <div class="form-group">
-                        <label for="edit-name">Segment Name</label>
-                        <input type="text" id="edit-name" name="name" value="${data.name}" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-percentage">Percentage (%)</label>
-                        <input type="number" id="edit-percentage" name="percentage" value="${data.percentage}" required>
-                    </div>
+                    <div class="form-group"><label for="edit-name">Segment Name</label><input type="text" id="edit-name" name="name" value="${data.name}" required></div>
+                    <div class="form-group"><label for="edit-percentage">Percentage (%)</label><input type="number" id="edit-percentage" name="percentage" value="${data.percentage}" required></div>
                 `;
-                break;
+                break; // Break is present
+
             case 'criterion':
                 fieldsHtml = `
-                    <div class="form-group">
-                        <label for="edit-name">Criterion Name</label>
-                        <input type="text" id="edit-name" name="name" value="${data.name}" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-max_score">Weight (%)</label>
-                        <input type="number" id="edit-max_score" name="max_score" value="${data.max_score}" required>
-                    </div>
+                    <div class="form-group"><label for="edit-name">Criterion Name</label><input type="text" id="edit-name" name="name" value="${data.name}" required></div>
+                    <div class="form-group"><label for="edit-max_score">Weight (%)</label><input type="number" id="edit-max_score" name="max_score" value="${data.max_score}" required></div>
                 `;
+                break; // *** THIS IS THE CRITICAL FIX ***
+
             case 'user':
-                const isSelf = (data.id == user.id); // Check if the user is editing themselves
+                const isSelf = (data.id == user.id);
                 fieldsHtml = `
-                    <div class="form-group">
-                        <label for="edit-username">Username</label>
-                        <input type="text" id="edit-username" name="username" value="${data.username}" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-role">Role</label>
-                        <select id="edit-role" name="role" ${isSelf ? 'disabled' : ''}>
-                            <option value="admin" ${data.role === 'admin' ? 'selected' : ''}>Admin</option>
-                            <option value="judge" ${data.role === 'judge' ? 'selected' : ''}>Judge</option>
-                        </select>
-                        ${isSelf ? '<p style="font-size: 0.8em; color: #666;">You cannot change your own role.</p>' : ''}
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-password">New Password (Optional)</label>
-                        <input type="password" id="edit-password" name="password" placeholder="Leave blank to keep current password">
-                    </div>
+                    <div class="form-group"><label for="edit-username">Username</label><input type="text" id="edit-username" name="username" value="${data.username}" required></div>
+                    <div class="form-group"><label for="edit-role">Role</label><select id="edit-role" name="role" ${isSelf ? 'disabled' : ''}><option value="admin" ${data.role === 'admin' ? 'selected' : ''}>Admin</option><option value="judge" ${data.role === 'judge' ? 'selected' : ''}>Judge</option></select>${isSelf ? '<p style="font-size: 0.8em; color: #666;">You cannot change your own role.</p>' : ''}</div>
+                    <div class="form-group"><label for="edit-password">New Password (Optional)</label><input type="password" id="edit-password" name="password" placeholder="Leave blank to keep current password"></div>
                 `;
-            break;
+                break; // Break is present
         }
         editFormFields.innerHTML = fieldsHtml;
     }
