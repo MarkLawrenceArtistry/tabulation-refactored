@@ -116,61 +116,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const segments = await apiRequest(`/api/contests/${contestId}/segments`);
         const list = document.getElementById('segments-list');
         const select = document.getElementById('criteria-segment-select');
-        const percentageBox = document.getElementById('segment-percentage-box');
-
         list.innerHTML = '';
         select.innerHTML = '<option value="">Select a segment first</option>';
-
-        let totalWeight = 0; // This is where percentage display as: "Total: XX%"
         segments.forEach(segment => {
-            totalWeight += Number(segment.percentage);
             list.innerHTML += `
                 <li class="segment-list-item" data-id="${segment.id}">
-                    ${segment.name} (${segment.percentage}%)
-                    <button class="btn-delete" data-id="${segment.id}" data-type="segment" data-name="${segment.name}">Delete</button>
+                    <span>${segment.name} (${segment.percentage}%)</span>
+                    <div class="actions-cell">
+                        <button class="btn-edit" data-id="${segment.id}" data-type="segment">Edit</button>
+                        <button class="btn-delete" data-id="${segment.id}" data-type="segment" data-name="${segment.name}">Delete</button>
+                    </div>
                 </li>`;
             select.innerHTML += `<option value="${segment.id}">${segment.name}</option>`;
         });
-
-        percentageBox.textContent = `Total: ${totalWeight}%`;
-
-        // Change color based on percentage
-        if (totalWeight === 100) {
-            percentageBox.style.backgroundColor = '#f8d7da'; // light red
-            percentageBox.style.color = '#721c24';
-        } else {
-            percentageBox.style.backgroundColor = '#d4edda'; // light green
-            percentageBox.style.color = '#155724';
-        }
-
     }
 
     async function loadCriteriaForSegment(segmentId) {
         const criteria = await apiRequest(`/api/segments/${segmentId}/criteria`);
         const display = document.getElementById('criteria-display');
-        const percentageBox = document.getElementById('criteria-percentage-box');
         display.innerHTML = '';
-
-        let totalWeight = 0; // This is where percentage display as: "Total: XX%"
         criteria.forEach(c => {
-            totalWeight += Number(c.max_score);
             display.innerHTML += `
                 <li class="criteria-list-item">
-                    ${c.name} (${c.max_score}%)
-                    <button class="btn-delete" data-id="${c.id}" data-type="criterium" data-name="${c.name}">Delete</button>
+                    <span>${c.name} (${c.max_score}%)</span>
+                    <div class="actions-cell">
+                        <button class="btn-edit" data-id="${c.id}" data-type="criterion">Edit</button>
+                        <button class="btn-delete" data-id="${c.id}" data-type="criterium" data-name="${c.name}">Delete</button>
+                    </div>
                 </li>`;
         });
-
-        percentageBox.textContent = `Total: ${totalWeight}%`;
-
-        // Change color based on percentage
-        if (totalWeight === 100) {
-            percentageBox.style.backgroundColor = '#f8d7da'; // light red
-            percentageBox.style.color = '#721c24';
-        } else {
-            percentageBox.style.backgroundColor = '#d4edda'; // light green
-            percentageBox.style.color = '#155724';
-        }
     }
 
     // --- FORM & ACTION HANDLERS ---
@@ -202,21 +176,24 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function handleAddSegment(e) {
         e.preventDefault();
-        const formData = new FormData(e.target);
-        const body = Object.fromEntries(formData.entries());
-        const contestId = selectedContestId;
-        body.contest_id = contestId;
-        const segments = await apiRequest(`/api/contests/${contestId}/segments`);
-        const totalUsed = segments.reduce((sum, seg) => sum + Number(seg.percentage), 0);
-        const newPercent = Number(body.percentage);
-        if (totalUsed + newPercent > 100) {
-            alert(`Cannot add segment. Total percentage would exceed 100%. Currently used: ${totalUsed}%.`);
-            return;
-        }
+        const form = e.target;
+        const formData = new FormData(form);
+        const newPercentage = parseFloat(formData.get('percentage'));
 
+        // --- VALIDATION LOGIC ---
+        const existingSegments = await apiRequest(`/api/contests/${selectedContestId}/segments`);
+        const currentTotal = existingSegments.reduce((sum, seg) => sum + seg.percentage, 0);
+
+        if (currentTotal + newPercentage > 100) {
+            alert(`Error: Adding this segment would bring the total to ${currentTotal + newPercentage}%. The total cannot exceed 100%.`);
+            return; // Stop the function
+        }
+        // --- END VALIDATION ---
+
+        const body = { ...Object.fromEntries(formData.entries()), contest_id: selectedContestId };
         await apiRequest('/api/segments', 'POST', body);
-        e.target.reset();
-        loadSegmentsForContest(contestId);
+        form.reset();
+        loadSegmentsForContest(selectedContestId);
     }
 
     async function handleAddCriterion(e) {
@@ -224,17 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(e.target);
         const body = Object.fromEntries(formData.entries());
         const segmentId = body.segment_id;
-        body.segment_id = segmentId;
-        const criteria = await apiRequest(`/api/segments/${segmentId}/criteria`);
-        const totalUsed = criteria.reduce((sum, c) => sum + Number(c.max_score), 0);
-        const newWeight = Number(body.max_score);
-        if (totalUsed + newWeight > 100) {
-            alert(`Cannot add criterion. Total weight would exceed 100%. Currently used: ${totalUsed}%.`);
-            return;
-        }
-    
         await apiRequest('/api/criteria', 'POST', body);
         e.target.reset();
+        document.getElementById('criteria-segment-select').value = segmentId; // Re-select
         loadCriteriaForSegment(segmentId);
     }
 
