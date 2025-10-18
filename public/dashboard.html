@@ -77,11 +77,17 @@
                                 <input type="number" name="percentage" placeholder="Percentage (%)" required>
                                 <button type="submit">Add Segment</button>
                             </form>
-                            <h4>Existing Segments</h4>
+                            <div class="segment-header">
+                              <h4>Existing Segments</h4>
+                              <div id="segment-percentage-box" class="segment-percentage-box">Total: 0%</div>
+                            </div>
                             <ul id="segments-list" class="item-list"></ul>
                         </div>
                         <div class="grid-item">
-                            <h4>Add Criterion</h4>
+                            <div class="segment-header">
+                              <h4>Add Criterion</h4>
+                              <div id="criteria-percentage-box" class="criteria-percentage-box">Total: 0%</div>
+                            </div>
                             <form id="add-criteria-form" class="vertical-form">
                                 <select name="segment_id" id="criteria-segment-select" required><option value="">Select a segment first</option></select>
                                 <input type="text" name="name" placeholder="Criterion Name" required>
