@@ -4,33 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Pageant System</title>
-    <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f3f3f3; }
-        .login-container { padding: 2rem; background: white; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #444; }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.5rem; }
-        input { width: 100%; padding: 0.5rem; box-sizing: border-box; }
-        button { width: 100%; padding: 0.75rem; background-color: #7495e9; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        #error-message { color: red; text-align: center; margin-top: 1rem; }
-    </style>
+    <link rel="stylesheet" href="./css/login.css">
 </head>
 <body>
-    <div class="login-container">
-        <h1>Tabulation System Login</h1>
-        <form id="login-form">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required>
+
+       <div class="login-container">
+        <!-- Left Panel with Background Image -->
+        <div class="login-left-panel">
+
+        </div>
+        <!-- Right Panel with Login Form -->
+        <div class="login-right-panel">
+            <div class="form-wrapper">
+                <h1>Welcome</h1>
+                <p class="subtitle">Log in to your account to continue</p>
+
+                <form id="login-form">
+                    <div class="input-group">
+                        <input type="text" id="username" name="username" placeholder="Username" required>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="password" name="password" placeholder="Password" required>
+                    </div>
+                    
+                 
+
+                    <button type="submit">Log In</button>
+                </form>
+                
+                <p id="error-message"></p>
             </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <button type="submit">Login</button>
-        </form>
-        <p id="error-message"></p>
+        </div>
     </div>
+    
+   
     <script src="/js/login.js"></script>
+
 </body>
 </html>
