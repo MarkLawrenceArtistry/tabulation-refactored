@@ -11,6 +11,7 @@
         <h1>Admin Dashboard 2</h1>
         <div class="user-info">
             Welcome, <span id="username-display"></span> (<span id="role-display"></span>)
+            <a href="/manage-scores.html" class="nav-button">Manage Scores</a>
             <a href="/results.html" class="nav-button">Live Results</a>
             <button id="logout-button">Logout</button>
         </div>
@@ -52,6 +53,10 @@
                     <form id="add-candidate-form">
                         <input type="text" name="name" placeholder="Candidate Name" required>
                         <input type="number" name="candidate_number" placeholder="No." required>
+                        <input type="text" name="branch" placeholder="Branch">
+                        <input type="text" name="course" placeholder="Course">
+                        <input type="text" name="section" placeholder="Section">
+                        <input type="text" name="year_level" placeholder="Year Level">
                         <input type="file" name="image" accept="image/*">
                         <button type="submit">Add Candidate</button>
                     </form>
@@ -96,6 +101,24 @@
             </div>
         </section>
     </main>
+
+    <!-- EDIT MODAL (Initially Hidden) -->
+    <div id="edit-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="edit-modal-title">Edit Item</h2>
+                <button id="close-modal-btn" class="close-btn">&times;</button>
+            </div>
+            <form id="edit-form">
+                <!-- Form fields will be dynamically inserted here by JavaScript -->
+                <div id="edit-form-fields"></div>
+                <div class="form-actions">
+                    <button type="submit">Save Changes</button>
+                    <button type="button" id="cancel-edit-btn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
     
     <script src="/js/auth.js"></script>
     <script src="/js/api.js"></script>

@@ -184,6 +184,7 @@ li {
 ul li { display: flex; justify-content: space-between; align-items: center; }
 
 /* CORRECTED MODAL STYLES */
+/* === MODAL STYLES === */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -191,11 +192,18 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.6);
-    display: flex; /* This is how it's visible by default */
+    display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
-    /* REMOVED visibility: hidden; */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-overlay:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
 }
 
 .modal-content {
@@ -212,14 +220,25 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
     align-items: center;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 1rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 .modal-header h2 { margin: 0; }
 .close-btn { background: none; border: none; font-size: 2rem; cursor: pointer; color: var(--text-color); }
-#edit-form { display: flex; flex-direction: column; }
+
+#edit-form { display: flex; flex-direction: column; gap: 0; }
 #edit-form .form-group { margin-bottom: 1rem; }
-#edit-form label { display: block; margin-bottom: 0.5rem; }
+#edit-form label { display: block; margin-bottom: 0.5rem; font-weight: 500;}
 #edit-form input, #edit-form select { width: 100%; box-sizing: border-box; }
+#edit-form .form-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; }
+#cancel-edit-btn { background-color: #6c757d; }
+
+#edit-form img.current-image-preview {
+    max-width: 100px;
+    height: auto;
+    border-radius: 4px;
+    margin-top: 0.5rem;
+    display: block;
+}
 .nav-button { background-color: #6c757d; color: white; padding: 0.5rem 1rem; text-decoration: none; border-radius: 4px; }
 .winner-type-header { margin-top: 2rem; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; }
 .winner-card h3 { margin-bottom: 0.5rem; }
@@ -320,4 +339,95 @@ a.judge-now-btn {
     width: 100%;
     box-sizing: border-box;
     text-decoration: none;
+}
+
+/* === NEW JUDGING CARD STYLES (V2 - MODERN) === */
+#judging-cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem; /* Increased gap for better spacing */
+    width: 100%;
+}
+
+.candidate-judging-card {
+    background-color: var(--card-bg);
+    border-radius: 16px; /* More rounded corners */
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    overflow: hidden; /* This is key to make the image corners rounded */
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease-in-out;
+}
+
+.candidate-judging-card:hover {
+    transform: translateY(-5px); /* Subtle hover effect */
+}
+
+/* The main image at the top of the card */
+.candidate-judging-card .card-image {
+    width: 100%;
+    height: 220px;
+    object-fit: cover; /* Ensures the image covers the area without distortion */
+}
+
+/* Container for all text and inputs below the image */
+.candidate-judging-card .card-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem; /* Space between header and criteria list */
+}
+
+.candidate-judging-card .candidate-info {
+    text-align: center;
+}
+
+.candidate-judging-card .candidate-info h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.5rem;
+}
+
+.candidate-judging-card .candidate-info p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* The list of criteria and their inputs */
+.candidate-judging-card .criteria-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.criterion-item {
+    display: grid; /* Use grid for better alignment */
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 1rem;
+}
+
+.criterion-item label {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.criterion-item input.score-input {
+    width: 70px;
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+/* Make the submit button more prominent */
+#submit-scores-btn {
+    width: 100%;
+    max-width: 400px;
+    margin: 2rem auto 0 auto;
+    padding: 1rem;
+    font-size: 1.2rem;
+    border-radius: 8px;
+    display: block;
 }
