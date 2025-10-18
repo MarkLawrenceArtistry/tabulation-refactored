@@ -1,6 +1,5 @@
 /* --- ROOT VARIABLES --- */
 :root {
-    /* --- COLOR PALETTE  --- */
     --primary-color: #dab856;      /* Gold */
     --primary-darker-color: #c8a94d; /* Darker Gold for Hover */
     --dark-color: #121212;         /* Rich Black */
@@ -9,11 +8,13 @@
     --text-dark-color: #333;
     --text-light-color: #888;
     --border-color: #eaeaea;
-    --shadow-color: rgba(0, 0, 0, 0.1);
+    --shadow-color: rgba(0, 0, 0, 0.08); /* Softer shadow */
     --header-blue-color: #4a5a75;   /* Muted blue for headers */
+    --link-color: #3b82f6;          /* Blue for links like 'Judge Now' */
 }
 
 /* --- GENERAL STYLES --- */
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--background-color);
@@ -36,10 +37,10 @@ header {
 
 .card {
     background-color: var(--form-bg-color);
-    border-radius: 8px;
+    border-radius: 16px;
     padding: 1.5rem;
     margin-bottom: 2rem;
-    box-shadow: 0 2px 4px var(--shadow-color);
+    box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 h1, h2, h3 {
@@ -62,9 +63,11 @@ button:hover {
     background-color: var(--primary-darker-color);
 }
 
-/* --- *** INSTRUCTIONS PANEL STYLES *** --- */
+
+/* --- INSTRUCTIONS PANEL STYLES --- */
 .instructions-container {
-    margin: 2rem; 
+    margin: 2rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.07);
 }
 
 .instructions-container h2 {
@@ -74,25 +77,24 @@ button:hover {
     margin-top: 0;
     margin-bottom: 1rem;
     padding-bottom: 1rem;
-    border-bottom: 2px solid var(--border-color); 
+    border-bottom: 2px solid var(--border-color);
 }
 
 .instructions-container ol {
     list-style-type: none;
     padding: 0;
     margin: 0;
-    counter-reset: instructions-counter; 
+    counter-reset: instructions-counter;
 }
 
-/*  individual instruction box */
 .instructions-container li {
-    background-color: #f7f9fc; /* Light background for the box */
+    background-color: #f7f9fc;
     border: 1px solid #e8edf3;
     border-radius: 8px;
-    padding: 1rem 1.5rem 1rem 3.5rem; 
+    padding: 1rem 1.5rem 1rem 3.5rem;
     margin-bottom: 1rem;
     position: relative;
-    color: var(--text-dark-color); 
+    color: var(--text-dark-color);
     font-size: 0.95rem;
     line-height: 1.5;
 }
@@ -101,7 +103,6 @@ button:hover {
     margin-bottom: 0;
 }
 
-
 .instructions-container li::before {
     counter-increment: instructions-counter;
     content: counter(instructions-counter);
@@ -109,18 +110,18 @@ button:hover {
     left: 1.5rem;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--text-light-color); 
+    color: var(--text-light-color);
     font-weight: 600;
     font-size: 1.1rem;
 }
 
 .instructions-container li strong {
     font-weight: 600;
-    color: var(--text-dark-color); 
+    color: var(--text-dark-color);
 }
 
 
-/* --- JUDGE DASHBOARD STYLES --- */
+/* --- WELCOME BANNER --- */
 .welcome-banner {
     background: linear-gradient(90deg, var(--primary-color), var(--primary-darker-color));
     color: var(--dark-color);
@@ -129,44 +130,75 @@ button:hover {
     color: var(--dark-color);
 }
 
+
+/* --- *** UPDATED CONTEST CARD STYLES --- */
+
 .contest-grid, .segments-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 1.5rem;
 }
+
 .contest-card {
     background-color: var(--form-bg-color);
-    border-radius: 8px;
-    box-shadow: 0 4px 8px var(--shadow-color);
+    border-radius: 16px;
+    box-shadow: 0 4px 12px var(--shadow-color);
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
+.contest-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+/*  Style for the image */
 .contest-card img {
     width: 100%;
-    height: 180px;
-    object-fit: cover;
+    height: 400px;
+    object-fit: contain;
+    display: block;
+    background-color: #ffffff;
 }
+
 .contest-card-body {
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
 }
+
 .contest-card-body h3 {
     margin-top: 0;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    font-size: 1.1rem; 
     flex-grow: 1;
 }
+
 .judge-now-btn,
 a.judge-now-btn {
-    display: block;
+    background: none;
+    padding: 0;
+    width: auto;
+    display: inline;
     text-align: center;
-    width: 100%;
-    box-sizing: border-box;
+    color: var(--link-color);
     text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: color 0.2s;
 }
 
-/* --- MODERN JUDGING CARD STYLES --- */
+a.judge-now-btn:hover {
+    color: var(--dark-color);
+    text-decoration: underline;
+}
+
+
+/* --- MODERN JUDGING CARD STYLES  --- */
 #judging-cards-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
