@@ -1,0 +1,254 @@
+/* --- ROOT VARIABLES --- */
+:root {
+    /* --- COLOR PALETTE  --- */
+    --primary-color: #dab856;      /* Gold */
+    --primary-darker-color: #c8a94d; /* Darker Gold for Hover */
+    --dark-color: #121212;         /* Rich Black */
+    --background-color: #f0f2f5;   /* Light Grey Background */
+    --form-bg-color: #ffffff;      /* White Form Panel */
+    --text-dark-color: #333;
+    --text-light-color: #888;
+    --border-color: #eaeaea;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --header-blue-color: #4a5a75;   /* Muted blue for headers */
+}
+
+/* --- GENERAL STYLES --- */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-dark-color);
+    margin: 0;
+}
+
+header {
+    background-color: var(--form-bg-color);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.container {
+    padding: 2rem;
+}
+
+.card {
+    background-color: var(--form-bg-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+h1, h2, h3 {
+    color: var(--text-dark-color);
+}
+
+button {
+    background-color: var(--primary-color);
+    color: var(--dark-color);
+    font-weight: bold;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0.75rem;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: var(--primary-darker-color);
+}
+
+/* --- *** INSTRUCTIONS PANEL STYLES *** --- */
+.instructions-container {
+    margin: 2rem; 
+}
+
+.instructions-container h2 {
+    color: var(--header-blue-color);
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color); 
+}
+
+.instructions-container ol {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: instructions-counter; 
+}
+
+/*  individual instruction box */
+.instructions-container li {
+    background-color: #f7f9fc; /* Light background for the box */
+    border: 1px solid #e8edf3;
+    border-radius: 8px;
+    padding: 1rem 1.5rem 1rem 3.5rem; 
+    margin-bottom: 1rem;
+    position: relative;
+    color: var(--text-dark-color); 
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.instructions-container li:last-child {
+    margin-bottom: 0;
+}
+
+
+.instructions-container li::before {
+    counter-increment: instructions-counter;
+    content: counter(instructions-counter);
+    position: absolute;
+    left: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-light-color); 
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.instructions-container li strong {
+    font-weight: 600;
+    color: var(--text-dark-color); 
+}
+
+
+/* --- JUDGE DASHBOARD STYLES --- */
+.welcome-banner {
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-darker-color));
+    color: var(--dark-color);
+}
+.welcome-banner h2, .welcome-banner p {
+    color: var(--dark-color);
+}
+
+.contest-grid, .segments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+.contest-card {
+    background-color: var(--form-bg-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 8px var(--shadow-color);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.contest-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+.contest-card-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+.contest-card-body h3 {
+    margin-top: 0;
+    flex-grow: 1;
+}
+.judge-now-btn,
+a.judge-now-btn {
+    display: block;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+    text-decoration: none;
+}
+
+/* --- MODERN JUDGING CARD STYLES --- */
+#judging-cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+    width: 100%;
+}
+
+.candidate-judging-card {
+    background-color: var(--form-bg-color);
+    border-radius: 16px;
+    box-shadow: 0 8px 16px var(--shadow-color);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease-in-out;
+}
+
+.candidate-judging-card:hover {
+    transform: translateY(-5px);
+}
+
+.candidate-judging-card .card-image {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+}
+
+.candidate-judging-card .card-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.candidate-judging-card .candidate-info {
+    text-align: center;
+}
+
+.candidate-judging-card .candidate-info h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.5rem;
+}
+
+.candidate-judging-card .candidate-info p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.candidate-judging-card .criteria-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.criterion-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 1rem;
+}
+
+.criterion-item label {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.criterion-item input.score-input {
+    width: 70px;
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+#submit-scores-btn {
+    width: 100%;
+    max-width: 400px;
+    margin: 2rem auto 0 auto;
+    padding: 1rem;
+    font-size: 1.2rem;
+    border-radius: 8px;
+    display: block;
+}
