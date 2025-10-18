@@ -116,35 +116,62 @@ document.addEventListener('DOMContentLoaded', () => {
         const segments = await apiRequest(`/api/contests/${contestId}/segments`);
         const list = document.getElementById('segments-list');
         const select = document.getElementById('criteria-segment-select');
+        const percentageBox = document.getElementById('segment-percentage-box');
+
         list.innerHTML = '';
         select.innerHTML = '<option value="">Select a segment first</option>';
+
+        let totalWeight = 0; // This is where percentage display as: "Total: XX%"
         segments.forEach(segment => {
+            totalWeight += Number(segment.percentage);
             list.innerHTML += `
                 <li class="segment-list-item" data-id="${segment.id}">
-                    <span>${segment.name} (${segment.percentage}%)</span>
-                    <div class="actions-cell">
-                        <button class="btn-edit" data-id="${segment.id}" data-type="segment">Edit</button>
-                        <button class="btn-delete" data-id="${segment.id}" data-type="segment" data-name="${segment.name}">Delete</button>
-                    </div>
+                    ${segment.name} (${segment.percentage}%)
+                    <button class="btn-delete" data-id="${segment.id}" data-type="segment" data-name="${segment.name}">Delete</button>
                 </li>`;
             select.innerHTML += `<option value="${segment.id}">${segment.name}</option>`;
         });
+
+        percentageBox.textContent = `Total: ${totalWeight}%`;
+
+        // Change color based on percentage
+        if (totalWeight === 100) {
+            percentageBox.style.backgroundColor = '#f8d7da'; // light red
+            percentageBox.style.color = '#721c24';
+        } else {
+            percentageBox.style.backgroundColor = '#d4edda'; // light green
+            percentageBox.style.color = '#155724';
+        }
+
     }
+
 
     async function loadCriteriaForSegment(segmentId) {
         const criteria = await apiRequest(`/api/segments/${segmentId}/criteria`);
         const display = document.getElementById('criteria-display');
+        const percentageBox = document.getElementById('criteria-percentage-box');
         display.innerHTML = '';
+
+        let totalWeight = 0; // This is where percentage display as: "Total: XX%"
         criteria.forEach(c => {
+            totalWeight += Number(c.max_score);
             display.innerHTML += `
                 <li class="criteria-list-item">
-                    <span>${c.name} (${c.max_score}%)</span>
-                    <div class="actions-cell">
-                        <button class="btn-edit" data-id="${c.id}" data-type="criterion">Edit</button>
-                        <button class="btn-delete" data-id="${c.id}" data-type="criterium" data-name="${c.name}">Delete</button>
-                    </div>
+                    ${c.name} (${c.max_score}%)
+                    <button class="btn-delete" data-id="${c.id}" data-type="criterium" data-name="${c.name}">Delete</button>
                 </li>`;
         });
+
+        percentageBox.textContent = `Total: ${totalWeight}%`;
+
+        // Change color based on percentage
+        if (totalWeight === 100) {
+            percentageBox.style.backgroundColor = '#f8d7da'; // light red
+            percentageBox.style.color = '#721c24';
+        } else {
+            percentageBox.style.backgroundColor = '#d4edda'; // light green
+            percentageBox.style.color = '#155724';
+        }
     }
 
     // --- FORM & ACTION HANDLERS ---

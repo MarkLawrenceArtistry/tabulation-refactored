@@ -431,3 +431,22 @@ a.judge-now-btn {
     border-radius: 8px;
     display: block;
 }
+
+/* <<<<< ADMIN DASHBOARD SEGMENT PERCENTAGE CALCULATOR >>>>> */
+.segment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  z-index: 900; /* below sidebar */
+}
+
+.segment-percentage-box, .criteria-percentage-box {
+  background-color: #d4edda; /* light green */
+  color: #155724;
+  padding: 8px 14px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
