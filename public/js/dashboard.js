@@ -127,7 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
             list.innerHTML += `
                 <li class="segment-list-item" data-id="${segment.id}">
                     ${segment.name} (${segment.percentage}%)
-                    <button class="btn-delete" data-id="${segment.id}" data-type="segment" data-name="${segment.name}">Delete</button>
+                    <div class="actions-cell">
+                        <button class="btn-edit" data-id="${segment.id}" data-type="segment">Edit</button>
+                        <button class="btn-delete" data-id="${segment.id}" data-type="segment" data-name="${segment.name}">Delete</button>
+                    </div>
                 </li>`;
             select.innerHTML += `<option value="${segment.id}">${segment.name}</option>`;
         });
@@ -158,7 +161,10 @@ document.addEventListener('DOMContentLoaded', () => {
             display.innerHTML += `
                 <li class="criteria-list-item">
                     ${c.name} (${c.max_score}%)
-                    <button class="btn-delete" data-id="${c.id}" data-type="criterium" data-name="${c.name}">Delete</button>
+                    <div class="actions-cell">
+                        <button class="btn-edit" data-id="${c.id}" data-type="criterion">Edit</button>
+                        <button class="btn-delete" data-id="${c.id}" data-type="criterium" data-name="${c.name}">Delete</button>
+                    </div>
                 </li>`;
         });
 
