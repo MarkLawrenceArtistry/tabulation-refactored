@@ -1,0 +1,187 @@
+/* ===== Podium Section ===== */
+.podium-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 30px;
+  perspective: 800px;
+}
+
+.podium {
+  position: relative;
+  text-align: center;
+  padding: 20px;
+  color: white;
+  font-weight: bold;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  transition: all 0.4s ease;
+  min-width: 110px;
+  transform-origin: bottom center;
+  overflow: hidden;
+}
+
+/* ===== Shining Effect (Only on Hover, Smooth Return) ===== */
+.podium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.0) 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.0) 100%
+  );
+  transform: skewX(-25deg);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.podium:hover::before {
+  opacity: 1;
+  animation: shineMove 1.5s ease-in-out forwards;
+}
+
+@keyframes shineMove {
+  0% {
+    left: -75%;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    left: 125%;
+    opacity: 0;
+  }
+}
+
+.podium img {
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 10px;
+  border: 3px solid rgba(255,255,255,0.8);
+  object-fit: cover;
+}
+
+/* ===== Podium Gradient & Effects ===== */
+.first-place {
+  background: linear-gradient(to bottom, #FFD700 0%, #E6BE00 60%, #B8860B 100%);
+  height: 200px;
+  animation: glowGold 3s infinite alternate;
+}
+
+.second-place {
+  background: linear-gradient(to bottom, #C0C0C0 0%, #A9A9A9 60%, #707070 100%);
+  height: 170px;
+  animation: glowSilver 3s infinite alternate;
+}
+
+.third-place {
+  background: linear-gradient(to bottom, #CD7F32 0%, #A65E2E 60%, #8B4513 100%);
+  height: 150px;
+  animation: glowBronze 3s infinite alternate;
+}
+
+/* Hover animation for podiums */
+.podium:hover {
+  transform: translateY(-10px) scale(1.15) rotateX(8deg);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+}
+
+/* Glowing animations */
+@keyframes glowGold {
+  from { box-shadow: 0 0 10px #FFD700; }
+  to { box-shadow: 0 0 25px #FFEA70; }
+}
+@keyframes glowSilver {
+  from { box-shadow: 0 0 10px #C0C0C0; }
+  to { box-shadow: 0 0 25px #F5F5F5; }
+}
+@keyframes glowBronze {
+  from { box-shadow: 0 0 10px #CD7F32; }
+  to { box-shadow: 0 0 25px #E49B48; }
+}
+
+/* ===== Extra Decorations ===== */
+.rank-star {
+  color: gold;
+  margin-left: 5px;
+  font-size: 1rem;
+}
+
+.trend-up { color: green; }
+.trend-down { color: red; }
+.trend-same { color: gray; }
+
+/* ===== Leaderboard Table ===== */
+.data-table {
+  width: 90%;               /* Compress width to 90% of container */
+  max-width: 1100px;        /* Optional: limit to a comfortable max size */
+  margin: 0 auto;           /* Center the table horizontally */
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 10px;
+  overflow: visible;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.data-table th, 
+.data-table td {
+  text-align: center;
+  padding: 10px 15px;
+}
+
+.data-table img {
+  max-width: 60px;
+  height: auto;
+  border-radius: 6px;
+}
+
+/* Rank-based row colors */
+.data-table tbody tr.rank-1 {
+  background: linear-gradient(to bottom, #FFE87C, #FFD700);
+  font-weight: bold;
+}
+
+.data-table tbody tr.rank-2 {
+  background: linear-gradient(to bottom, #E0E0E0, #C0C0C0);
+  font-weight: bold;
+}
+
+.data-table tbody tr.rank-3 {
+  background: linear-gradient(to bottom, #E49B48, #CD7F32);
+  font-weight: bold;
+}
+
+/* Alternating colors for others */
+.data-table tbody tr:nth-child(even).rank-other {
+  background: #f8f8fb;
+}
+
+.data-table tbody tr:nth-child(odd).rank-other {
+  background: #eef0f9;
+}
+
+/* Dramatic hover grow effect */
+.data-table tbody tr {
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+.data-table tbody tr:hover {
+  transform: scale(1.1);
+  background-color: #fff8e1 !important;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+  z-index: 10;
+  position: relative;
+  cursor: pointer;
+}

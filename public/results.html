@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Tabulation</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/podium-ranking.css">
 </head>
 <body>
     <header>
@@ -12,6 +13,13 @@
         <a href="/dashboard.html" class="nav-button">Back to Dashboard</a>
     </header>
     <main class="container">
+        <!-- Podium for top 3 -->
+        <div class="podium-container" id="podium-container">
+          <div class="podium second-place" id="second-place"></div>
+          <div class="podium first-place" id="first-place"></div>
+          <div class="podium third-place" id="third-place"></div>
+        </div>
+
         <div class="card">
         <div class="leaderboard-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h2 id="leaderboard-title">Leaderboard</h2>
@@ -23,6 +31,7 @@
                 <thead>
                     <tr>
                         <th>Rank</th>
+                        <th>Trend</th>
                         <th>Photo</th>
                         <th>Candidate</th>
                         <th>Total Score</th>
