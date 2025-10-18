@@ -94,25 +94,67 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // >>>>> NEW
     async function loadSegmentsForContest(contestId) {
         const segments = await apiRequest(`/api/contests/${contestId}/segments`);
         const list = document.getElementById('segments-list');
         const select = document.getElementById('criteria-segment-select');
+        const percentageBox = document.getElementById('segment-percentage-box');
+
         list.innerHTML = '';
         select.innerHTML = '<option value="">Select a segment first</option>';
+
+        let totalWeight = 0; // This is where percentage display as: "Total: XX%"
         segments.forEach(segment => {
-            list.innerHTML += `<li class="segment-list-item" data-id="${segment.id}">${segment.name} (${segment.percentage}%)<button class="btn-delete" data-id="${segment.id}" data-type="segment" data-name="${segment.name}">Delete</button></li>`;
+            totalWeight += Number(segment.percentage);
+            list.innerHTML += `
+                <li class="segment-list-item" data-id="${segment.id}">
+                    ${segment.name} (${segment.percentage}%)
+                    <button class="btn-delete" data-id="${segment.id}" data-type="segment" data-name="${segment.name}">Delete</button>
+                </li>`;
             select.innerHTML += `<option value="${segment.id}">${segment.name}</option>`;
         });
+
+        percentageBox.textContent = `Total: ${totalWeight}%`;
+
+        // Change color based on percentage
+        if (totalWeight === 100) {
+            percentageBox.style.backgroundColor = '#f8d7da'; // light red
+            percentageBox.style.color = '#721c24';
+        } else {
+            percentageBox.style.backgroundColor = '#d4edda'; // light green
+            percentageBox.style.color = '#155724';
+        }
+
     }
+
 
     async function loadCriteriaForSegment(segmentId) {
         const criteria = await apiRequest(`/api/segments/${segmentId}/criteria`);
         const display = document.getElementById('criteria-display');
+        const percentageBox = document.getElementById('criteria-percentage-box');
         display.innerHTML = '';
+
+        let totalWeight = 0; // This is where percentage display as: "Total: XX%"
         criteria.forEach(c => {
-            display.innerHTML += `<li class="criteria-list-item">${c.name} (${c.max_score}%)<button class="btn-delete" data-id="${c.id}" data-type="criterium" data-name="${c.name}">Delete</button></li>`;
+            totalWeight += Number(c.max_score);
+            display.innerHTML += `
+                <li class="criteria-list-item">
+                    ${c.name} (${c.max_score}%)
+                    <button class="btn-delete" data-id="${c.id}" data-type="criterium" data-name="${c.name}">Delete</button>
+                </li>`;
         });
+
+        percentageBox.textContent = `Total: ${totalWeight}%`;
+
+        // Change color based on percentage
+        if (totalWeight === 100) {
+            percentageBox.style.backgroundColor = '#f8d7da'; // light red
+            percentageBox.style.color = '#721c24';
+        } else {
+            percentageBox.style.backgroundColor = '#d4edda'; // light green
+            percentageBox.style.color = '#155724';
+        }
     }
 
     // --- FORM & ACTION HANDLERS ---
@@ -145,10 +187,20 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleAddSegment(e) {
         e.preventDefault();
         const formData = new FormData(e.target);
-        const body = { ...Object.fromEntries(formData.entries()), contest_id: selectedContestId };
+        const body = Object.fromEntries(formData.entries());
+        const contestId = selectedContestId;
+        body.contest_id = contestId;
+        const segments = await apiRequest(`/api/contests/${contestId}/segments`);
+        const totalUsed = segments.reduce((sum, seg) => sum + Number(seg.percentage), 0);
+        const newPercent = Number(body.percentage);
+        if (totalUsed + newPercent > 100) {
+            alert(`Cannot add segment. Total percentage would exceed 100%. Currently used: ${totalUsed}%.`);
+            return;
+        }
+
         await apiRequest('/api/segments', 'POST', body);
         e.target.reset();
-        loadSegmentsForContest(selectedContestId);
+        loadSegmentsForContest(contestId);
     }
 
     async function handleAddCriterion(e) {
@@ -156,11 +208,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(e.target);
         const body = Object.fromEntries(formData.entries());
         const segmentId = body.segment_id;
+        body.segment_id = segmentId;
+        const criteria = await apiRequest(`/api/segments/${segmentId}/criteria`);
+        const totalUsed = criteria.reduce((sum, c) => sum + Number(c.max_score), 0);
+        const newWeight = Number(body.max_score);
+        if (totalUsed + newWeight > 100) {
+            alert(`Cannot add criterion. Total weight would exceed 100%. Currently used: ${totalUsed}%.`);
+            return;
+        }
+    
         await apiRequest('/api/criteria', 'POST', body);
         e.target.reset();
-        document.getElementById('criteria-segment-select').value = segmentId; // Re-select
         loadCriteriaForSegment(segmentId);
     }
+
 
     async function handleDelete(button) {
         let { id, type, name } = button.dataset;
@@ -187,4 +248,63 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+
+    // --- SIDEBAR TOGGLING ---
+function handleToggleSection(targetSection, otherSections = []) {
+    const isVisible = targetSection.style.display === 'block';
+    
+    // Toggle the target section
+    targetSection.style.display = isVisible ? 'none' : 'block';
+    
+    // Hide other sections if target is now visible
+    if (!isVisible) {
+        otherSections.forEach(section => section.style.display = 'none');
+    }
+}
+
+// Sections
+function handleToggleSection(targetSections, otherSections = []) {
+    // Determine if the first target section is currently visible
+    const isVisible = targetSections[0].style.display === 'block';
+    
+    // Toggle all target sections
+    targetSections.forEach(section => {
+        section.style.display = isVisible ? 'none' : 'block';
+    });
+
+    // Hide all other sections
+    if (!isVisible) {
+        otherSections.forEach(section => section.style.display = 'none');
+    }
+}
+
+// Sections
+const contestsSection = document.getElementById('contests-section');
+const segmentsSection = document.getElementById('segments-section');
+const contestDetailsSection = document.getElementById('contest-details-section'); // right column
+const manageUsersSection = document.getElementById('manage-users-section');
+
+// Buttons
+const manageUsersBtn = document.getElementById('manage-users-btn');
+const manageContestsBtn = document.getElementById('manage-candidates-btn'); // toggles contests
+
+// Event listeners
+manageUsersBtn.addEventListener('click', () => {
+    handleToggleSection([manageUsersSection], [contestsSection, segmentsSection, contestDetailsSection]);
+    manageUsersBtn.disabled = true;
+    manageContestsBtn.disabled = false;
+});
+
+manageContestsBtn.addEventListener('click', () => {
+    handleToggleSection([contestsSection, segmentsSection, contestDetailsSection], [manageUsersSection]);
+    manageUsersBtn.disabled = false;
+    manageContestsBtn.disabled = true;
+});
+
+// Show contests by default
+contestsSection.style.display = 'block';
+segmentsSection.style.display = 'block';
+contestDetailsSection.style.display = 'block';
+manageUsersSection.style.display = 'none';
+
 });

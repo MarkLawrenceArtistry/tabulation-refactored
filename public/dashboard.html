@@ -11,94 +11,145 @@
         <h1>Admin Dashboard 2</h1>
         <div class="user-info">
             Welcome, <span id="username-display"></span> (<span id="role-display"></span>)
-            <a href="/results.html" class="nav-button">Live Results</a>
-            <button id="logout-button">Logout</button>
         </div>
     </header>
 
+    <!-- LEFT SIDEBAR: CONTESTS & USERS -->
+    <!-- SIDEBAR CONTAINER -->
+    <div class="sidebar-container">
+  <aside class="sidebar hidden-sidebar active">
+    <div class="burger" id="burger">☰</div>
+
+    <!-- Top navigation buttons -->
+    <div class="top-buttons">
+      <button class="sidebar-btn" disabled="false" id="manage-candidates-btn">
+        <img src="/assets/candidate-icon.png" class="icon" alt="Candidates">
+        <span class="btn-text">Manage Candidates</span>
+      </button>
+      <button class="sidebar-btn" id="manage-users-btn">
+        <img src="/assets/user-icon.png" class="icon" alt="Users">
+        <span class="btn-text">Manage Users</span>
+      </button>
+      <a href="/results.html" class="sidebar-btn">
+        <img src="/assets/result-icon.png" class="icon" alt="Results">
+        <span class="btn-text">Live Results</span>
+      </a>
+    </div>
+
+    <!-- Bottom logout button -->
+    <div class="bottom-buttons">
+      <button class="sidebar-btn logout-button" id="logout-button">
+        <img src="/assets/logout-icon.png" class="icon" alt="Logout">
+        <span class="btn-text">Logout</span>
+        
+      </button>
+    </div>
+  </aside>
+</div>
+
+    </div>
     <main class="dashboard-layout">
-        <!-- LEFT SIDEBAR: CONTESTS & USERS -->
-        <aside class="sidebar">
-            <div class="card">
-                <h2>Contests</h2>
-                <form id="add-contest-form">
-                    <input type="text" name="name" placeholder="New Contest Name" required>
-                    <input type="file" name="image" accept="image/*">
-                    <button type="submit">Create Contest</button>
-                </form>
-                <ul id="contests-list" class="item-list"></ul>
-            </div>
-            
-            <div id="manage-users-section" class="card hidden">
-                <h2>Manage Users</h2>
-                <form id="add-user-form">
-                    <input type="text" id="new-username" placeholder="Username" required>
-                    <input type="password" id="new-password" placeholder="Password" required>
-                    <select id="new-role" required> <option value="" disabled selected>Select Role</option> <option value="admin">Admin</option> <option value="judge">Judge</option> </select>
-                    <button type="submit">Add User</button>
-                </form>
-                <ul id="users-list" class="item-list"></ul>
-            </div>
-        </aside>
+      <section class="main-content two-column">
+        <!-- LEFT COLUMN -->
+        <div class="left-column">
+          <div id="contests-section" class="card">
+            <h2>Contests</h2>
+            <form id="add-contest-form">
+              <input type="text" name="name" placeholder="New Contest Name" required>
+              <input type="file" name="image" accept="image/*">
+              <button type="submit">Create Contest</button>
+            </form>
+            <ul id="contests-list" class="item-list"></ul>
+          </div>
 
-        <!-- MAIN CONTENT: CONTEST DETAILS -->
-        <section class="main-content">
-            <div id="contest-details-section" class="hidden">
-                <h2 id="selected-contest-name"></h2>
-                
-                <!-- Candidates Management -->
-                <div class="card">
-                    <h3>Candidates</h3>
-                    <form id="add-candidate-form">
-                        <input type="text" name="name" placeholder="Candidate Name" required>
-                        <input type="number" name="candidate_number" placeholder="No." required>
-                        <input type="file" name="image" accept="image/*">
-                        <button type="submit">Add Candidate</button>
-                    </form>
-                    <table class="data-table">
-                        <thead><tr><th>Photo</th><th>No.</th><th>Name</th><th>Actions</th></tr></thead>
-                        <tbody id="candidates-table-body"></tbody>
-                    </table>
+          <div id="manage-users-section" class="card">
+            <h2>Manage Users</h2>
+            <form id="add-user-form">
+              <input type="text" id="new-username" placeholder="Username" required>
+              <input type="password" id="new-password" placeholder="Password" required>
+              <select id="new-role" required> 
+                <option value="" disabled selected>Select Role</option> 
+                <option value="admin">Admin</option> 
+                <option value="judge">Judge</option> 
+              </select>
+              <button type="submit">Add User</button>
+            </form>
+            <ul id="users-list" class="item-list"></ul>
+          </div>
+
+          <!-- Segments & Criteria -->
+            <div class="card" id="segments-section">
+              <h3>Segments & Criteria</h3>
+              <div class="grid-container">
+                <div class="grid-item">
+                  <h4>Add Segment</h4>
+                  <form id="add-segment-form" class="vertical-form">
+                    <input type="text" name="name" placeholder="Segment Name" required>
+                    <input type="number" name="percentage" placeholder="Percentage (%)" required>
+                    <button type="submit">Add Segment</button>
+                  </form>
+                  <div class="segment-header">
+                    <h4>Existing Segments</h4>
+                    <div id="segment-percentage-box" class="segment-percentage-box">Total: 0%</div>
+                  </div>
+                  <ul id="segments-list" class="item-list"></ul>
                 </div>
-
-                <!-- Segments & Criteria Management -->
-                <div class="card">
-                    <h3>Segments & Criteria</h3>
-                    <div class="grid-container">
-                        <div class="grid-item">
-                            <h4>Add Segment</h4>
-                            <form id="add-segment-form" class="vertical-form">
-                                <input type="text" name="name" placeholder="Segment Name" required>
-                                <input type="number" name="percentage" placeholder="Percentage (%)" required>
-                                <button type="submit">Add Segment</button>
-                            </form>
-                            <h4>Existing Segments</h4>
-                            <ul id="segments-list" class="item-list"></ul>
-                        </div>
-                        <div class="grid-item">
-                            <h4>Add Criterion</h4>
-                            <form id="add-criteria-form" class="vertical-form">
-                                <select name="segment_id" id="criteria-segment-select" required><option value="">Select a segment first</option></select>
-                                <input type="text" name="name" placeholder="Criterion Name" required>
-                                <input type="number" name="max_score" placeholder="Weight (%)" required>
-                                <button type="submit">Add Criterion</button>
-                            </form>
-                            <h4>Existing Criteria</h4>
-                            <div id="criteria-display"></div>
-                        </div>
-                    </div>
+                <div class="grid-item">
+                  <div class="segment-header">
+                    <h4>Add Criterion</h4>
+                    <div id="criteria-percentage-box" class="criteria-percentage-box">Total: 0%</div>
+                  </div>
+                  <form id="add-criteria-form" class="vertical-form">
+                    <select name="segment_id" id="criteria-segment-select" required>
+                      <option value="">Select a segment first</option>
+                    </select>
+                    <input type="text" name="name" placeholder="Criterion Name" required>
+                    <input type="number" name="max_score" placeholder="Weight (%)" required>
+                    <button type="submit">Add Criterion</button>
+                  </form>
+                  <h4>Existing Criteria</h4>
+                  <div id="criteria-display"></div>
                 </div>
+              </div>
+            </div>
+        </div>
 
+        
+
+        <!-- RIGHT COLUMN -->
+        <div class="right-column">
+          <div id="contest-details-section" class="hidden">
+            <h2 id="selected-contest-name"></h2>
+
+            <!-- Candidates Management -->
+            <div class="card" id="candidates-section">
+              <h3>Candidates</h3>
+              <form id="add-candidate-form">
+                <input type="text" name="name" placeholder="Candidate Name" required>
+                <input type="number" name="candidate_number" placeholder="No." required>
+                <input type="file" name="image" accept="image/*">
+                <button type="submit">Add Candidate</button>
+              </form>
+              <table class="data-table">
+                <thead><tr><th>Photo</th><th>No.</th><th>Name</th><th>Actions</th></tr></thead>
+                <tbody id="candidates-table-body"></tbody>
+              </table>
             </div>
-            <div id="welcome-message" class="card">
-                <h2>Welcome, Admin!</h2>
-                <p>Please select a contest from the list on the left to begin, or create a new one.</p>
-            </div>
-        </section>
+          </div>
+
+          <div id="welcome-message" class="card">
+            <h2>Welcome, Admin!</h2>
+            <p>Please select a contest from the list on the left to begin, or create a new one.</p>
+          </div>
+        </div>
+      </section>
     </main>
     
     <script src="/js/auth.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/dashboard.js"></script>
+
+    <script src="/js/sidebar.js"></script>
+
 </body>
 </html>

@@ -81,7 +81,23 @@ function setupFormSubmission(contestId) {
         });
 
         if (!isValid) {
-            alert('Please correct invalid scores (0-100).');
+            // OLD alert('Please correct invalid scores (0-100).');
+            // NEW: Show error modal
+            const warningModal = document.getElementById('warning-modal');
+            warningModal.style.display = 'flex';
+
+            // Close when clicking outside
+            window.addEventListener('click', function handler(e) {
+                if (e.target === warningModal) {
+                    warningModal.style.display = 'none';
+                    window.removeEventListener('click', handler);
+                }
+            })
+            // Auto-close after 2.5 seconds
+            setTimeout(() => {
+                warningModal.style.display = 'none';
+            }, 2500);
+
             submitBtn.disabled = false;
             submitBtn.textContent = 'Submit All Scores';
             return;
@@ -89,10 +105,27 @@ function setupFormSubmission(contestId) {
 
         try {
             await apiRequest('/api/judging/scores', 'POST', { scores: scoresPayload, contest_id: contestId });
-            alert('Scores submitted successfully!');
-            window.location.href = `/judge-segments.html?contest=${contestId}`;
+            // OLD alert('Scores submitted successfully!');
+        
+            // NEW: Show success modal
+            const modal = document.getElementById('success-modal');
+            modal.style.display = 'flex';
+
+            // Close modal when clicking outside it
+                window.addEventListener('click', function handler(e) {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                        window.removeEventListener('click', handler);
+                        window.location.href = `/judge-segments.html?contest=${contestId}`;
+                    }
+                });
+             // Auto-close after 4 seconds (ADJUST HERE!)
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    window.location.href = `/judge-segments.html?contest=${contestId}`;
+                }, 4000);
         } catch (error) {
-            // Error handling is now more robust
+            console.error(error);
             submitBtn.disabled = false;
             submitBtn.textContent = 'Submit All Scores';
         }

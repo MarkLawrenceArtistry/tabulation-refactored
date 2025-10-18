@@ -1,40 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Tabulation</title>
-    <link rel="stylesheet" href="/css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Tabulation</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+  <!-- SIDEBAR -->
+  <div class="sidebar-container">
+    <aside class="sidebar active">
+      <div class="burger" id="burger">☰</div>
+
+      <!-- Top buttons -->
+      <div class="top-buttons">
+        <a href="/dashboard.html" class="sidebar-btn">
+          <img src="/assets/go-back-icon.png" class="icon" alt="Dashboard">
+          <span class="btn-text">Go Back</span>
+        </a>
+      </div>
+
+      <!-- Bottom logout -->
+      <div class="bottom-buttons">
+        <button class="sidebar-btn" id="logout-btn">
+          <img src="/assets/logout-icon.png" class="icon" alt="Logout">
+          <span class="btn-text">Logout</span>
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="dashboard-layout">
     <header>
-        <h1>Live Tabulation Results Final</h1>
-        <a href="/dashboard.html" class="nav-button">Back to Dashboard</a>
+      <h1>Live Tabulation Results</h1>
     </header>
-    <main class="container">
-        <div class="card">
-            <h2>Leaderboard</h2>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Photo</th>
-                        <th>Candidate</th>
-                        <th>Contest</th>
-                        <th>Total Score</th>
-                    </tr>
-                </thead>
-                <tbody id="results-table-body">
-                    <tr><td colspan="5">Connecting to server...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </main>
-    
-    <!-- Load Socket.IO client library -->
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script src="/js/auth.js"></script>
-    <script src="/js/api.js"></script>
-    <script src="/js/results.js"></script>
+
+    <section class="main-content">
+
+      <!-- Podium for top 3 -->
+      <div class="podium-container" id="podium-container">
+        <div class="podium second-place" id="second-place"></div>
+        <div class="podium first-place" id="first-place"></div>
+        <div class="podium third-place" id="third-place"></div>
+      </div>
+
+      <!-- Leaderboard table -->
+      <div class="card">
+        <h2>Leaderboard</h2>
+        <table class="data-table" id="results-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Trend</th>
+              <th>Photo</th>
+              <th>Candidate</th>
+              <th>Contest</th>
+              <th>Total Score</th>
+            </tr>
+          </thead>
+          <tbody id="results-table-body">
+            <tr><td colspan="5">Connecting to server...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Scripts -->
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/results.js"></script>
+  <script src="/js/sidebar.js"></script>
 </body>
 </html>
