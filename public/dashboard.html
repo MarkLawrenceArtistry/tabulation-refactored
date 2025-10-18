@@ -72,6 +72,7 @@
                     <div class="grid-container">
                         <div class="grid-item">
                             <h4>Add Segment</h4>
+                            <div id="segment-percentage-box" class="segment-percentage-box">Total: 0%</div>
                             <form id="add-segment-form" class="vertical-form">
                                 <input type="text" name="name" placeholder="Segment Name" required>
                                 <input type="number" name="percentage" placeholder="Percentage (%)" required>
@@ -82,6 +83,7 @@
                         </div>
                         <div class="grid-item">
                             <h4>Add Criterion</h4>
+                            <div id="criteria-percentage-box" class="criteria-percentage-box">Total: 0%</div>
                             <form id="add-criteria-form" class="vertical-form">
                                 <select name="segment_id" id="criteria-segment-select" required><option value="">Select a segment first</option></select>
                                 <input type="text" name="name" placeholder="Criterion Name" required>
