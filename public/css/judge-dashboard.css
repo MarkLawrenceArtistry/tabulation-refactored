@@ -1,16 +1,16 @@
-/* --- ROOT VARIABLES --- */
+/* --- ROOT VARIABLES (Dark & Gold Theme) --- */
 :root {
-    --primary-color: #dab856;      /* Gold */
-    --primary-darker-color: #c8a94d; /* Darker Gold for Hover */
-    --dark-color: #121212;         /* Rich Black */
-    --background-color: #f0f2f5;   /* Light Grey Background */
-    --form-bg-color: #ffffff;      /* White Form Panel */
-    --text-dark-color: #333;
-    --text-light-color: #888;
-    --border-color: #eaeaea;
-    --shadow-color: rgba(0, 0, 0, 0.08); /* Softer shadow */
-    --header-blue-color: #4a5a75;   /* Muted blue for headers */
-    --link-color: #3b82f6;          /* Blue for links like 'Judge Now' */
+    --primary-color: #c9a374;
+    --primary-darker-color: #b89264;
+    --dark-color: #3b2f2f;
+    --background-color: #3d3d3d;
+    --form-bg-color: rgba(45, 45, 45, 0.7);
+    --text-dark-color: #ffffff;
+    --text-light-color: rgba(255, 255, 255, 0.7);
+    --border-color: rgba(255, 255, 255, 0.4);
+    --shadow-color: rgba(0, 0, 0, 0.75);
+    --header-blue-color: var(--primary-color); 
+    --link-color: #8ab4f8; 
 }
 
 /* --- GENERAL STYLES --- */
@@ -24,6 +24,7 @@ body {
 
 header {
     background-color: var(--form-bg-color);
+    backdrop-filter: blur(10px);
     padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
@@ -37,10 +38,12 @@ header {
 
 .card {
     background-color: var(--form-bg-color);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
     border-radius: 16px;
     padding: 1.5rem;
     margin-bottom: 2rem;
-    box-shadow: 0 4px 12px var(--shadow-color);
+    box-shadow: 0 8px 25px var(--shadow-color);
 }
 
 h1, h2, h3 {
@@ -67,7 +70,10 @@ button:hover {
 /* --- INSTRUCTIONS PANEL STYLES --- */
 .instructions-container {
     margin: 2rem;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+    background-color: var(--form-bg-color); 
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
 }
 
 .instructions-container h2 {
@@ -88,13 +94,13 @@ button:hover {
 }
 
 .instructions-container li {
-    background-color: #f7f9fc;
-    border: 1px solid #e8edf3;
+    background-color: rgba(0,0,0,0.2); 
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 1rem 1.5rem 1rem 3.5rem;
     margin-bottom: 1rem;
     position: relative;
-    color: var(--text-dark-color);
+    color: var(--text-dark-color); 
     font-size: 0.95rem;
     line-height: 1.5;
 }
@@ -131,7 +137,7 @@ button:hover {
 }
 
 
-/* --- *** UPDATED CONTEST CARD STYLES --- */
+/* --- CONTEST CARD STYLES --- */
 
 .contest-grid, .segments-grid {
     display: grid;
@@ -141,6 +147,8 @@ button:hover {
 
 .contest-card {
     background-color: var(--form-bg-color);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
     border-radius: 16px;
     box-shadow: 0 4px 12px var(--shadow-color);
     overflow: hidden;
@@ -151,16 +159,15 @@ button:hover {
 
 .contest-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.5);
 }
 
-/*  Style for the image */
 .contest-card img {
     width: 100%;
-    height: 400px;
+    height: 250px; 
     object-fit: contain;
     display: block;
-    background-color: #ffffff;
+    background-color: transparent; 
 }
 
 .contest-card-body {
@@ -193,7 +200,7 @@ a.judge-now-btn {
 }
 
 a.judge-now-btn:hover {
-    color: var(--dark-color);
+    color: var(--primary-color);
     text-decoration: underline;
 }
 
@@ -208,6 +215,8 @@ a.judge-now-btn:hover {
 
 .candidate-judging-card {
     background-color: var(--form-bg-color);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
     border-radius: 16px;
     box-shadow: 0 8px 16px var(--shadow-color);
     overflow: hidden;
@@ -245,7 +254,7 @@ a.judge-now-btn:hover {
 .candidate-judging-card .candidate-info p {
     margin: 0;
     font-size: 0.9rem;
-    color: #666;
+    color: var(--text-light-color); 
 }
 
 .candidate-judging-card .criteria-list {
@@ -272,6 +281,8 @@ a.judge-now-btn:hover {
     padding: 0.5rem;
     font-size: 1rem;
     border: 1px solid var(--border-color);
+    background-color: rgba(0,0,0,0.2);
+    color: var(--text-dark-color);
     border-radius: 4px;
 }
 
