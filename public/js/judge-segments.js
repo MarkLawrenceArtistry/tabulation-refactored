@@ -33,9 +33,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             let buttonHtml = '';
             // Check the is_judged flag to decide which button to show
             if (segment.is_judged) {
-                buttonHtml = `<a href="/view-scores.html?contest=${contestId}&segment=${segment.id}&segmentName=${encodeURIComponent(segment.name)}" class="judge-now-btn" style="background-color: #5bc0de;">View Submitted Scores</a>`;
+                buttonHtml = `<a href="/view-scores.html?contest=${contestId}&segment=${segment.id}&segmentName=${encodeURIComponent(segment.name)}" class="judge-now-btn after">View Submitted Scores</a>`;
             } else {
-                buttonHtml = `<a href="/judging-sheet.html?contest=${contestId}&segment=${segment.id}" class="judge-now-btn">Judge Now &rarr;</a>`;
+                buttonHtml = `<a href="/judging-sheet.html?contest=${contestId}&segment=${segment.id}" class="judge-now-btn before">Judge Now &rarr;</a>`;
             }
 
             card.innerHTML = `

@@ -38,7 +38,6 @@ header {
     border-radius: 16px; /* UPDATED */
     padding: 1.5rem;
     margin-bottom: 2rem;
-    box-shadow: 0 8px 25px var(--shadow-color); /* UPDATED */
     border: 1px solid var(--border-color); /* UPDATED */
     backdrop-filter: blur(10px); /* UPDATED */
 }
@@ -211,7 +210,6 @@ li {
 }
 .segment-card h3 { margin-top: 0; }
 .segment-card p { flex-grow: 1; }
-.judge-now-btn { width: 100%; padding: 0.75rem; }
 
 /* Judging Sheet Styles */
 .judging-table-container { overflow-x: auto; width: 100%; }
@@ -381,16 +379,36 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
     margin-top: 0;
     flex-grow: 1;
 }
-.judge-now-btn,
-a.judge-now-btn {
-    display: inline; /* UPDATED */
-    text-align: left; /* UPDATED */
-    width: auto; /* UPDATED */
+
+.judge-now-btn {
     text-decoration: none;
-    background: none; /* UPDATED */
-    padding: 0; /* UPDATED */
-    color: var(--primary-color); /* UPDATED */
+    padding: 10px; /* UPDATED */
     font-weight: bold; /* UPDATED */
+    width: auto;
+    display: inline;
+    text-align: center;
+    color: var(--background-color);
+    transition: all ease .3s;
+    border: none;
+    border-radius: 5px;
+}
+
+.judge-now-btn.after {
+    background-color: var(--primary-color);
+}
+
+.judge-now-btn.before {
+    color: var(--primary-color);
+}
+
+.judge-now-btn.before:hover {
+    color: var(--text-dark-color);
+    background-color: var(--background-color);
+}
+
+.judge-now-btn.after:hover {
+    background-color: #3d3d3d;
+    color: var(--text-dark-color);
 }
 
 /* MODERN JUDGING CARD STYLES */
