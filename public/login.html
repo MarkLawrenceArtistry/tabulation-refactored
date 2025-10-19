@@ -8,28 +8,33 @@
 </head>
 <body>
 
-       <div class="login-container">
-        <!-- Left Panel with Background Image -->
-        <div class="login-left-panel">
+    <div class="background-container"></div>
 
+    <div class="login-container">
+        <!-- Left Panel with Logo -->
+        <div class="login-left-panel">
+            <img src="Assets/dcsa-logo.png" alt="DCSA Logo" class="logo-emblem">
         </div>
+
         <!-- Right Panel with Login Form -->
         <div class="login-right-panel">
             <div class="form-wrapper">
                 <h1>Welcome</h1>
-                <p class="subtitle">Log in to your account to continue</p>
-
                 <form id="login-form">
+                    
+                    <!-- *** UPDATED INPUT GROUP 1 *** -->
                     <div class="input-group">
-                        <input type="text" id="username" name="username" placeholder="Username" required>
-                    </div>
-                    <div class="input-group">
-                        <input type="password" id="password" name="password" placeholder="Password" required>
+                        <input type="text" id="username" name="username" class="input-field" placeholder=" " required>
+                        <label for="username" class="input-label">Username</label>
                     </div>
                     
-                 
+                    <!-- *** UPDATED INPUT GROUP 2 *** -->
+                    <div class="input-group">
+                        <input type="password" id="password" name="password" class="input-field" placeholder=" " required>
+                        <label for="password" class="input-label">Password</label>
+                    </div>
 
-                    <button type="submit">Log In</button>
+                    <button type="submit">Login</button>
                 </form>
                 
                 <p id="error-message"></p>
@@ -37,7 +42,6 @@
         </div>
     </div>
     
-   
     <script src="/js/login.js"></script>
 
 </body>

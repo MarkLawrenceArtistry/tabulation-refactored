@@ -1,14 +1,15 @@
+/* Root Variables */
 :root {
-    /* --- COLOR PALETTE  --- */
-    --primary-color: #dab856;      /* Gold */
-    --primary-darker-color: #c8a94d; /* Darker Gold for Hover */
-    --dark-color: #121212;         /* Rich Black */
-    --background-color: #f0f2f5;   /* Light Grey Background */
-    --form-bg-color: #ffffff;      /* White Form Panel */
-    --text-dark-color: #333;
-    --text-light-color: #888;
-    --border-color: #eaeaea;
-    --shadow-color: rgba(0, 0, 0, 0.1);
+
+    --primary-color: #c9a374;      
+    --primary-darker-color: #b89264; 
+    --dark-color: #3b2f2f;
+    --background-color: #3d3d3d;   
+    --form-bg-color: rgba(45, 45, 45, 0.7);      
+    --text-dark-color: #ffffff;
+    --text-light-color: rgba(255, 255, 255, 0.7);
+    --border-color: rgba(255, 255, 255, 0.4);
+    --shadow-color: rgba(0, 0, 0, 0.75);
 }
 
 body {
@@ -19,7 +20,8 @@ body {
 }
 
 header {
-    background-color: var(--form-bg-color);
+    background-color: var(--form-bg-color); /* Glass effect */
+    backdrop-filter: blur(10px); /* UPDATED */
     padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
@@ -32,17 +34,19 @@ header {
 }
 
 .card {
-    background-color: var(--form-bg-color);
-    border-radius: 8px;
+    background-color: var(--form-bg-color); /* Glass effect */
+    border-radius: 16px; /* UPDATED */
     padding: 1.5rem;
     margin-bottom: 2rem;
-    box-shadow: 0 2px 4px var(--shadow-color);
+    box-shadow: 0 8px 25px var(--shadow-color); /* UPDATED */
+    border: 1px solid var(--border-color); /* UPDATED */
+    backdrop-filter: blur(10px); /* UPDATED */
 }
 
 /* Instructions container style */
 .instructions-container {
-    background-color: var(--dark-color);
-    color: var(--background-color);
+    background-color: var(--form-bg-color); /* UPDATED */
+    color: var(--text-dark-color); /* UPDATED */
     margin: 2rem;
     border-radius: 12px;
 }
@@ -84,11 +88,13 @@ form {
     margin-bottom: 1.5rem;
 }
 
-input, select, button {
+input, select {
     padding: 0.75rem;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 1rem;
+    background-color: rgba(0,0,0,0.2); /* UPDATED */
+    color: var(--text-dark-color); /* UPDATED */
 }
 
 button {
@@ -98,6 +104,9 @@ button {
     border: none;
     cursor: pointer;
     transition: background-color 0.2s;
+    padding: 0.75rem; 
+    border-radius: 4px; 
+    font-size: 1rem; 
 }
 
 button:hover {
@@ -118,7 +127,7 @@ button:hover {
 }
 
 .data-table th {
-    background-color: var(--background-color);
+    background-color: rgba(0,0,0,0.3); /* UPDATED: */
 }
 
 .data-table img {
@@ -140,9 +149,9 @@ ul {
 }
 
 li {
-    background: #fafafa;
+    background: transparent; /* UPDATED */
     padding: 0.5rem;
-    border: 1px solid #eee;
+    border: 1px solid var(--border-color); /* UPDATED */
     margin-bottom: 0.5rem;
     border-radius: 4px;
 }
@@ -159,7 +168,7 @@ li {
     border-radius: 8px;
     overflow: hidden;
     text-align: center;
-    background-color: #fafafa;
+    background-color: rgba(0,0,0,0.2); /* UPDATED */
     position: relative;
 }
 
@@ -193,11 +202,12 @@ li {
 .segment-card {
     background-color: var(--form-bg-color);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 16px; /* UPDATED */
     padding: 1.5rem;
-    box-shadow: 0 2px 4px var(--shadow-color);
+    box-shadow: 0 8px 25px var(--shadow-color); /* UPDATED */
     display: flex;
     flex-direction: column;
+    backdrop-filter: blur(10px); /* UPDATED */
 }
 .segment-card h3 { margin-top: 0; }
 .segment-card p { flex-grow: 1; }
@@ -211,9 +221,10 @@ li {
 
 /* Action Buttons */
 .actions-cell { display: flex; gap: 0.5rem; }
-.btn-edit { background-color: #f0ad4e; }
-.btn-delete { background-color: #d9534f; }
-.btn-edit, .btn-delete { padding: 0.3rem 0.6rem; font-size: 0.8rem; border: none; color: white; border-radius: 4px; cursor: pointer; }
+/* UPDATED */
+.btn-edit { background-color: var(--primary-color); color: var(--dark-color); }
+.btn-delete { background-color: #d9534f; color: white; }
+.btn-edit, .btn-delete { padding: 0.3rem 0.6rem; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer; }
 .item-card .actions-cell { position: absolute; top: 5px; right: 5px; }
 ul li { display: flex; justify-content: space-between; align-items: center; }
 
@@ -224,7 +235,7 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.8); /* UPDATED */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -240,12 +251,13 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
 }
 
 .modal-content {
-    background-color: white;
+    background-color: var(--background-color); /* UPDATED */
     padding: 2rem;
-    border-radius: 8px;
+    border-radius: 16px;
     width: 90%;
     max-width: 500px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 32px var(--shadow-color);
+    border: 1px solid var(--border-color);
 }
 .modal-header {
     display: flex;
@@ -318,13 +330,14 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
 }
 
 .contest-list-item:hover {
-    background-color: #e9e9e9;
+    background-color: rgba(255, 255, 255, 0.1); /* UPDATED */
 }
 
 .contest-list-item.active {
     background-color: var(--primary-color);
-    color: white;
+    color: var(--dark-color); /* UPDATED */
     border-color: var(--primary-color);
+    font-weight: bold; /* UPDATED */
 }
 
 .vertical-form {
@@ -340,21 +353,23 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
 /* JUDGE DASHBOARD STYLES */
 .contest-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(4, 1fr); /* UPDATED */
     gap: 1.5rem;
 }
 .contest-card {
     background-color: var(--form-bg-color);
-    border-radius: 8px;
-    box-shadow: 0 4px 8px var(--shadow-color);
+    border-radius: 16px; /* UPDATED */
+    box-shadow: 0 8px 25px var(--shadow-color); /* UPDATED */
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    border: 1px solid var(--border-color); /* UPDATED */
+    backdrop-filter: blur(10px); /* UPDATED */
 }
 .contest-card img {
     width: 100%;
-    height: 180px;
-    object-fit: cover;
+    height: 250px; /* UPDATED */
+    object-fit: contain; /* UPDATED  */
 }
 .contest-card-body {
     padding: 1.5rem;
@@ -368,11 +383,14 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
 }
 .judge-now-btn,
 a.judge-now-btn {
-    display: block;
-    text-align: center;
-    width: 100%;
-    box-sizing: border-box;
+    display: inline; /* UPDATED */
+    text-align: left; /* UPDATED */
+    width: auto; /* UPDATED */
     text-decoration: none;
+    background: none; /* UPDATED */
+    padding: 0; /* UPDATED */
+    color: var(--primary-color); /* UPDATED */
+    font-weight: bold; /* UPDATED */
 }
 
 /* MODERN JUDGING CARD STYLES */
@@ -391,6 +409,8 @@ a.judge-now-btn {
     display: flex;
     flex-direction: column;
     transition: transform 0.2s ease-in-out;
+    border: 1px solid var(--border-color); /* UPDATED */
+    backdrop-filter: blur(10px); /* UPDATED */
 }
 
 .candidate-judging-card:hover {
@@ -422,7 +442,7 @@ a.judge-now-btn {
 .candidate-judging-card .candidate-info p {
     margin: 0;
     font-size: 0.9rem;
-    color: #666;
+    color: var(--text-light-color); /* UPDATED */
 }
 
 .candidate-judging-card .criteria-list {
@@ -468,12 +488,12 @@ a.judge-now-btn {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 6px;
-  z-index: 900; /* below sidebar */
+  z-index: 900;
 }
 
 .segment-percentage-box, .criteria-percentage-box {
-  background-color: #d4edda; /* light green */
-  color: #155724;
+  background-color: var(--primary-color); /* UPDATED */
+  color: var(--dark-color); /* UPDATED */
   padding: 8px 14px;
   border-radius: 20px;
   display: inline-block;
