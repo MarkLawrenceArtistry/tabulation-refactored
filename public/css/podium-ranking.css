@@ -26,7 +26,28 @@
   min-width: 160px;
   transform-origin: bottom center;
   overflow: hidden;
+  transition: height 0.8s ease-in-out, transform 0.6s ease, opacity 0.6s ease;
 }
+
+/* === Smooth fade out/in for candidate swaps === */
+.fade-out {
+  animation: podiumFadeOut 0.6s ease forwards;
+}
+.fade-in {
+  animation: podiumFadeIn 0.8s ease forwards;
+}
+
+
+@keyframes podiumFadeOut {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(40px) scale(0.9); }
+}
+
+@keyframes podiumFadeIn {
+  0% { opacity: 0; transform: translateY(-40px) scale(1.2); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 
 /* ===== Dynamic Height for Podium ===== */
 .first-place {
@@ -45,23 +66,43 @@
   animation: glowBronze 3s infinite alternate;
 }
 
-/* ===== Smooth Transition for Rank Change ===== */
-.podium.animate-rise {
-  animation: podiumRise 0.8s ease-out;
-}
-.podium.animate-fall {
-  animation: podiumFall 0.8s ease-out;
+/* ===== Rank Movement Animation (Up/Down Changes) ===== */
+.podium.rise {
+  animation: rankRise 1.6s ease-in-out, glowRiseFade 1.6s ease-in-out;
 }
 
-@keyframes podiumRise {
-  0% { transform: translateY(20px) scale(1); }
-  40% { transform: translateY(-10px) scale(1.15); }
+.podium.fall {
+  animation: rankFall 1.6s ease-in-out, glowFallFade 1.6s ease-in-out;
+}
+
+/* Movement animation */
+@keyframes rankRise {
+  0% { transform: translateY(20px) scale(0.95); opacity: 0.8; }
+  50% { transform: translateY(-15px) scale(1.1); opacity: 1; }
   100% { transform: translateY(0) scale(1); }
 }
-@keyframes podiumFall {
-  0% { transform: translateY(-10px) scale(1.05); }
-  100% { transform: translateY(20px) scale(1); }
+
+@keyframes rankFall {
+  0% { transform: translateY(-15px) scale(1.1); opacity: 1; }
+  50% { transform: translateY(15px) scale(0.95); opacity: 0.8; }
+  100% { transform: translateY(0) scale(1); }
 }
+
+/* ✨ Smooth glow pulse + fade out effect */
+@keyframes glowRiseFade {
+  0% { box-shadow: 0 0 0 rgba(0, 255, 100, 0); }
+  30% { box-shadow: 0 0 25px rgba(0, 255, 100, 0.7); }
+  70% { box-shadow: 0 0 25px rgba(0, 255, 100, 0.5); }
+  100% { box-shadow: 0 0 0 rgba(0, 255, 100, 0); }
+}
+
+@keyframes glowFallFade {
+  0% { box-shadow: 0 0 0 rgba(255, 80, 80, 0); }
+  30% { box-shadow: 0 0 25px rgba(255, 80, 80, 0.7); }
+  70% { box-shadow: 0 0 25px rgba(255, 80, 80, 0.5); }
+  100% { box-shadow: 0 0 0 rgba(255, 80, 80, 0); }
+}
+
 
 /* ===== Shining Effect (Only on Hover) ===== */
 .podium::before {
@@ -101,11 +142,12 @@
   margin-bottom: 10px;
   border: 3px solid rgba(255,255,255,0.8);
   object-fit: cover;
-  transition: transform 0.4s ease, filter 0.4s ease;
+   transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), filter 0.4s ease;
 }
 .podium:hover img {
-  transform: scale(1.15);
+ transform: scale(1.25);
   filter: brightness(1.2);
+  
 }
 
 /* ===== Hover animation for podiums ===== */
@@ -134,6 +176,13 @@
   margin-left: 5px;
   font-size: 1rem;
 }
+.trend-up, .trend-down, .trend-same {
+  font-weight: bold;
+  font-size: 1.1rem; /* ⬅ increase this for bigger arrows */
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 .trend-up { color: #00ff88; font-weight: bold; }
 .trend-down { color: #ff5555; font-weight: bold; }
 .trend-same { color: #bbb; }
@@ -145,32 +194,60 @@
   margin: 0 auto;
   border-collapse: separate;
   border-spacing: 0;
-  border-radius: 10px;
+  border: 3px solid #b89264;
   overflow: visible;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   position: relative;
-  background-color: #ffffff;
+  background-color: #e8e8e8;
+  border-radius: 25px;
 }
 .table-wrapper, .leaderboard-container {
   overflow-x: hidden;
 }
 
+/* Header row keeps the top corners smooth */
+.data-table thead tr:first-child th:first-child {
+  border-top-left-radius: 20px;
+}
+.data-table thead tr:first-child th:last-child {
+  border-top-right-radius: 20px;
+}
+
+/* Footer (optional) keeps bottom corners smooth */
+.data-table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 25px;
+}
+.data-table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 25px;
+}
+
 .data-table th, 
 .data-table td {
   text-align: center;
-  padding: 10px 15px;
-  border-bottom: 1px solid #e0e0e0;
+  color: #000;
 }
 .data-table th {
-  background: #f3f4f6;
+  background: #b89264;
   font-weight: 600;
   color: #333;
+  font-size: 24px;
 }
 
 .data-table img {
   max-width: 60px;
   height: auto;
   border-radius: 6px;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), filter 0.4s ease;
+}
+
+.data-table tr:hover img {
+  animation: popScale 0.4s ease forwards;
+}
+
+@keyframes popScale {
+  0% { transform: scale(1); }
+  60% { transform: scale(2.3); }
+  100% { transform: scale(2.0); }
 }
 
 /* ===== Rank-based row colors ===== */
@@ -216,7 +293,7 @@
   100% { transform: scale(1); box-shadow: 0 0 0 rgba(255,255,0,0); }
 }
 .leaderboard-row {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 2.0s ease, box-shadow 0.3s ease;
   position: relative;
   overflow: hidden;
 }
@@ -228,9 +305,11 @@
   left: -75%;
   width: 50%;
   height: 100%;
+  opacity: 0;
   background: linear-gradient(120deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
   transform: skewX(-25deg);
-  transition: left 0.6s ease;
+  transition: left 0.8s ease, opacity 0.8s ease;
+  pointer-events: none;
 }
 
 .leaderboard-row:hover {
@@ -239,21 +318,23 @@
 }
 
 .leaderboard-row:hover::after {
-  left: 125%;
+  left: 130%;
+  opacity: 1;
 }
 
-/* 🎨 Top 3 Row Colors */
+/* 🎨 Top 3 Row Colors — Reversed Direction */
 .gold-row {
-  background: linear-gradient(to right, rgba(255, 217, 0, 0.899), rgba(255,223,0,0.1));
+  background: linear-gradient(to left, rgba(235, 200, 0, 0.899), rgba(255, 223, 0, 0.1));
 }
 
 .silver-row {
-  background: linear-gradient(to right, rgba(192, 192, 192, 0.855), rgba(211,211,211,0.1));
+  background: linear-gradient(to left, rgba(174, 174, 174, 0.855), rgba(211, 211, 211, 0.1));
 }
 
 .bronze-row {
-  background: linear-gradient(to right, rgba(233, 135, 42, 0.765), rgba(139,69,19,0.1));
+  background: linear-gradient(to left, rgba(219, 119, 26, 0.765), rgba(139, 69, 19, 0.1));
 }
+
 
 /* ===== Rank Label (1st, 2nd, 3rd) ===== */
 .podium-rank {
@@ -288,4 +369,102 @@
   font-size: 1.2rem;
   font-weight: 700;
   margin-top: 4px;
+}
+
+/* Change Column Widths */
+.data-table th:nth-child(1),
+.data-table td:nth-child(1) {
+  width: 20px; /* Rank */
+  text-align: left;
+  font-size: 24px;
+}
+
+.data-table th:nth-child(2),
+.data-table td:nth-child(2) {
+  width: 20px; /* Trend */
+}
+
+.data-table th:nth-child(3),
+.data-table td:nth-child(3) {
+  width: 350; /* Candidate */
+}
+
+.data-table th:nth-child(4),
+.data-table td:nth-child(4) {
+  /* Total Score */
+  text-align: right;
+  font-size: 24px;
+}
+
+
+/* ===== Candidate Cell Styling ===== */
+.candidate-cell {
+  padding: 0.5rem 1rem;
+}
+
+.candidate-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.candidate-name {
+  font-weight: 600;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.candidate-photo {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+}
+
+.leaderboard-row:hover .candidate-photo {
+  transform: scale(1.1);
+}
+
+/* ===== Rank Box Styling ===== */
+.rank-box {
+  display: inline-block;
+  min-width: 32px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: bold;
+  text-align: center;
+  font-size: 1rem;
+  box-shadow: 0 0 8px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+/* Hover effect */
+.rank-box:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 12px rgba(255,255,255,0.6);
+}
+
+/* Color themes */
+.rank-1 {
+  background: linear-gradient(to bottom, #FFD700, #E6BE00);
+  color: #000;
+}
+
+.rank-2 {
+  background: linear-gradient(to bottom, #C0C0C0, #A9A9A9);
+  color: #000;
+}
+
+.rank-3 {
+  background: linear-gradient(to bottom, #CD7F32, #A65E2E);
+  color: #fff;
+}
+
+/* Neutral ranks (4th and below) */
+.rank-box:not(.rank-1):not(.rank-2):not(.rank-3) {
+  background: linear-gradient(to bottom, #3a3a3a, #222);
+  color: #ddd;
 }
