@@ -27,6 +27,7 @@ const upload = multer({ storage: storage });
 // --- DATABASE CONNECTION ---
 const db = new sqlite3.Database(DB_PATH, (err) => { if (err) console.error("DB Connection Error:", err.message); else console.log("Successfully connected to the database."); });
 db.run("PRAGMA foreign_keys = ON;");
+db.run("PRAGMA journal_mode = WAL;");
 
 // --- AUTH & RBAC MIDDLEWARE ---
 const authenticateToken = (req, res, next) => { const authHeader = req.headers['authorization']; const token = authHeader && authHeader.split(' ')[1]; if (token == null) return res.sendStatus(401); jwt.verify(token, JWT_SECRET, (err, user) => { if (err) return res.sendStatus(403); req.user = user; next(); }); };
