@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Judging Sheet</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/success-modal.css">
 </head>
 <body>
     <header>
@@ -21,7 +22,19 @@
             <button type="submit" id="submit-scores-btn">Submit All Scores</button>
         </form>
     </main>
-    
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" aria-hidden="true">
+      <div class="modal">
+        <img src="./assets/check-animation.gif" alt="Success" class="success-gif" />
+        <h2 class="title">Title Here</h2>
+        <p class="message">Customize Description in the judging-sheet JS code</p>
+        <button class="primary">OK</button>
+      </div>
+    </div>
+
+
+    <script src="/js/success-modal.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/judging-sheet.js"></script>

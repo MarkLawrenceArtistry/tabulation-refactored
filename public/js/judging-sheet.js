@@ -117,8 +117,13 @@ function setupFormSubmission(contestId) {
 
         try {
             await apiRequest('/api/judging/scores', 'POST', { scores: scoresPayload, contest_id: contestId });
-            alert('Scores submitted successfully!');
-            window.location.href = `/judge-segments.html?contest=${contestId}`;
+            // OLD alert('Scores submitted successfully!');
+            showSuccessModal(
+  "Scores Recorded!",
+  "All your scores for this segment have been securely submitted. You may now proceed to the next Segment.",
+  `/judge-segments.html?contest=${contestId}`
+);
+
         } catch (error) {
             // Error handling is now more robust
             submitBtn.disabled = false;
