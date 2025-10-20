@@ -125,6 +125,10 @@ button:hover {
     text-align: left;
 }
 
+td.actions-cell {
+    padding: 2rem;
+}
+
 .data-table th {
     background-color: rgba(0,0,0,0.3); /* UPDATED: */
 }
@@ -517,4 +521,8 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
   display: inline-block;
   margin-bottom: 10px;
   font-weight: 600;
+}
+
+input[type="file"] {
+    width: 100%;
 }

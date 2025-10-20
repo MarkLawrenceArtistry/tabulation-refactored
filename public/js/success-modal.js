@@ -9,7 +9,7 @@
     modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal">
-        <img src="${gifPath}" alt="Success" class="success-gif" />
+        <img src="${gifPath}" alt="Icon" class="success-gif" />
         <h2 class="title">${title}</h2>
         <p class="message">${message}</p>
         <button id="ok-btn" class="primary">OK</button>
@@ -46,7 +46,7 @@
       modal.classList.add('hide');
       setTimeout(() => {
         modal.remove();
-        if (redirectUrl) window.location.href = redirectUrl;
+        if (redirectUrl) window.location.replace(redirectUrl);
       }, 350);
     }
 

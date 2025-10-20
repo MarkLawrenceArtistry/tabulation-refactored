@@ -38,7 +38,6 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
 
     } catch (error) {
         console.error('API Request Error:', error.message);
-        alert(`Error: ${error.message}`);
         throw error;
     }
 }

@@ -92,15 +92,26 @@ function setupFormSubmission(contestId) {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Submitting...';
 
+        // --- NEW: Prevent back button immediately on submit ---
+        // This stops the user from navigating back while the request is in flight.
+        history.pushState(null, null, location.href);
+        window.onpopstate = function () {
+            history.go(1);
+        };
+
         const scoreInputs = document.querySelectorAll('.score-input');
         const scoresPayload = [];
         let isValid = true;
 
         scoreInputs.forEach(input => {
             const score = parseFloat(input.value);
-            if (isNaN(score) || score < 0 || score > 100) {
-                input.style.borderColor = 'red'; isValid = false;
-            } else { input.style.borderColor = ''; }
+            // Updated validation to check for empty inputs too
+            if (input.value.trim() === '' || isNaN(score) || score < 0 || score > 100) {
+                input.style.borderColor = 'red'; 
+                isValid = false;
+            } else { 
+                input.style.borderColor = ''; 
+            }
             scoresPayload.push({
                 candidate_id: input.dataset.candidateId,
                 criterion_id: input.dataset.criterionId,
@@ -109,25 +120,44 @@ function setupFormSubmission(contestId) {
         });
 
         if (!isValid) {
-            alert('Please correct invalid scores (0-100).');
+            alert('Please fill in all fields and correct invalid scores (0-100).');
             submitBtn.disabled = false;
             submitBtn.textContent = 'Submit All Scores';
+            // Allow the back button again if validation fails
+            window.onpopstate = null; 
             return;
         }
 
         try {
             await apiRequest('/api/judging/scores', 'POST', { scores: scoresPayload, contest_id: contestId });
-            // OLD alert('Scores submitted successfully!');
+            
+            // On success, the modal will handle the redirect.
             showSuccessModal(
-  "Scores Recorded!",
-  "All your scores for this segment have been securely submitted. You may now proceed to the next Segment.",
-  `/judge-segments.html?contest=${contestId}`
-);
+                "Scores Recorded!",
+                "Your scores have been submitted. You will now be returned to the segments list.",
+                `/judge-segments.html?contest=${contestId}`
+            );
 
         } catch (error) {
-            // Error handling is now more robust
+            // --- NEW: Graceful error handling ---
             submitBtn.disabled = false;
             submitBtn.textContent = 'Submit All Scores';
+            
+            // Allow back navigation if there was a server error
+            window.onpopstate = null; 
+
+            if (error.message.includes("already submitted")) {
+                // Show a friendly modal for the specific error
+                showSuccessModal(
+                    "Submission Blocked",
+                    "You have already submitted scores for this segment. Please return to the dashboard.",
+                    `/judge-segments.html?contest=${contestId}`,
+                    './assets/error-icon.png' // Optional: use a different icon for errors
+                );
+            } else {
+                // Show a generic error for other issues (e.g., server down)
+                alert(`An unexpected error occurred: ${error.message}`);
+            }
         }
     });
 }
