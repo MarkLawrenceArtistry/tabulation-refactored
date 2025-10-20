@@ -139,24 +139,29 @@ function setupFormSubmission(contestId) {
             );
 
         } catch (error) {
-            // --- NEW: Graceful error handling ---
             submitBtn.disabled = false;
             submitBtn.textContent = 'Submit All Scores';
-            
-            // Allow back navigation if there was a server error
-            window.onpopstate = null; 
+            window.onpopstate = null; // Allow back navigation on any error
 
+            // --- THE FIX IS HERE ---
+            // Priority 1: Check for a network connection error.
+            if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+                // The global banner from api.js is already handling this.
+                // We do nothing here to avoid showing a second alert/modal.
+                return; 
+            }
+            
+            // Priority 2: Check for the specific "already submitted" error.
             if (error.message.includes("already submitted")) {
-                // Show a friendly modal for the specific error
                 showSuccessModal(
                     "Submission Blocked",
                     "You have already submitted scores for this segment. Please return to the dashboard.",
-                    `/judge-segments.html?contest=${contestId}`,
-                    './assets/error-icon.png' // Optional: use a different icon for errors
+                    `/judge-segments.html?contest=${contestId}`
                 );
-            } else {
-                // Show a generic error for other issues (e.g., server down)
-                alert(`An unexpected error occurred: ${error.message}`);
+            } 
+            // Priority 3: Fallback for any other unexpected server errors.
+            else {
+                alert(`An unexpected server error occurred: ${error.message}`);
             }
         }
     });
