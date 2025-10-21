@@ -156,7 +156,8 @@ function setupFormSubmission(contestId) {
                 showSuccessModal(
                     "Submission Blocked",
                     "You have already submitted scores for this segment. Please return to the dashboard.",
-                    `/judge-segments.html?contest=${contestId}`
+                    `/judge-segments.html?contest=${contestId}`,
+                    `assets/error-icon.png`
                 );
             } 
             // Priority 3: Fallback for any other unexpected server errors.

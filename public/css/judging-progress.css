@@ -1,0 +1,60 @@
+.controls-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+#contest-select {
+    min-width: 250px;
+}
+
+.progress-grid {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+.progress-grid th, .progress-grid td {
+    border: 1px solid var(--border-color);
+    padding: 0.8rem;
+    text-align: center;
+}
+
+.progress-grid th {
+    background-color: rgba(0,0,0,0.3);
+}
+
+.progress-grid td:first-child {
+    text-align: left;
+    font-weight: bold;
+}
+
+.status-cell {
+    font-weight: bold;
+    border-radius: 4px;
+    padding: 0.5rem;
+    color: #fff;
+    transition: background-color 0.5s ease;
+}
+
+.status-submitted {
+    background-color: #28a745; /* Green */
+}
+
+.status-pending {
+    background-color: #dc3545; /* Red */
+}
+
+/* Animation for when the status updates */
+.status-updated {
+    animation: flash-green 1s ease;
+}
+
+@keyframes flash-green {
+    0% { background-color: #28a745; }
+    50% { background-color: #90ee90; transform: scale(1.05); }
+    100% { background-color: #28a745; }
+}

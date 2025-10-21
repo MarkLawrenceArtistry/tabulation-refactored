@@ -7,8 +7,8 @@
     "dev": "npx nodemon server/server.js",
     "init": "node server/database-init.js",
     "register": "node server/create-superadmin.js",
-    "npm2": "pm2 start tabulation-system",
-    "npm2-stop": "pm2 stop tabulation-system"
+    "pm2": "pm2 start tabulation-system",
+    "pm2-stop": "pm2 stop tabulation-system"
   },
   "keywords": [],
   "author": "",

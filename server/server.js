@@ -359,6 +359,54 @@ app.get('/api/scores', authenticateToken, authorizeRoles('admin', 'superadmin'),
         res.json(rows);
     });
 });
+// --- JUDGING PROGRESS DASHBOARD API ---
+app.get('/api/admin/judging-status', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { contest_id } = req.query;
+    if (!contest_id) {
+        return res.status(400).json({ message: "Contest ID is required." });
+    }
+
+    const sql = `
+        WITH AllCombinations AS (
+            SELECT
+                j.id AS judge_id,
+                j.username AS judge_name,
+                s.id AS segment_id,
+                s.name AS segment_name
+            FROM
+                users j
+            CROSS JOIN
+                segments s
+            WHERE
+                j.role = 'judge' AND s.contest_id = ?
+        ),
+        JudgedSegments AS (
+            SELECT DISTINCT
+                sc.judge_id,
+                cr.segment_id
+            FROM scores sc
+            JOIN criteria cr ON sc.criterion_id = cr.id
+        )
+        SELECT
+            ac.judge_name,
+            ac.segment_name,
+            CASE WHEN js.segment_id IS NOT NULL THEN 1 ELSE 0 END as is_submitted
+        FROM
+            AllCombinations ac
+        LEFT JOIN
+            JudgedSegments js ON ac.judge_id = js.judge_id AND ac.segment_id = js.segment_id
+        ORDER BY
+            ac.segment_name, ac.judge_name;
+    `;
+
+    db.all(sql, [contest_id], (err, rows) => {
+        if (err) {
+            console.error("Error fetching judging status:", err.message);
+            return res.status(500).json({ message: "Database error while fetching judging status." });
+        }
+        res.json(rows);
+    });
+});
 
 // --- AWARDS & PUBLIC RESULTS ---
 app.get('/api/awards', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.all("SELECT * FROM awards", [], (err, rows) => res.json(rows)); });
