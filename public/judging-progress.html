@@ -6,29 +6,35 @@
     <title>Judging Progress</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/judging-progress.css">
+    <link rel="stylesheet" href="/css/admin-layout.css"> <!-- Added new layout CSS -->
 </head>
 <body>
-    <header>
-        <h1>Real-Time Judging Progress</h1>
-        <a href="/dashboard.html" class="nav-button">Back to Dashboard</a>
-    </header>
+    <div class="admin-layout">
+        <!-- The sidebar will be injected here by JavaScript -->
+        <aside id="admin-sidebar-container"></aside>
 
-    <main class="container">
-        <div class="card">
-            <div class="controls-container">
-                <h2>Select Contest to Monitor</h2>
-                <select id="contest-select">
-                    <option value="">-- Select a Contest --</option>
-                </select>
+        <!-- Main content area -->
+        <main class="admin-main-content">
+            <h1>Real-Time Judging Progress</h1>
+            <div class="container">
+                <div class="card">
+                    <div class="controls-container">
+                        <h2>Select Contest to Monitor</h2>
+                        <select id="contest-select">
+                            <option value="">-- Select a Contest --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="progress-grid-container" class="card">
+                    <p>Please select a contest to view the progress.</p>
+                </div>
             </div>
-        </div>
-
-        <div id="progress-grid-container" class="card">
-            <p>Please select a contest to view the progress.</p>
-        </div>
-    </main>
+        </main>
+    </div>
     
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/admin-sidebar.js"></script> <!-- Added new sidebar script -->
     <script src="/js/auth.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/judging-progress.js"></script>

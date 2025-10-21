@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         second: { id: null, score: null },
         third: { id: null, score: null }
     };
+    let isLoading = false;
 
     socket.on('connect', () => console.log('✅ Connected to WebSocket server'));
     socket.on('disconnect', () => {
@@ -24,11 +25,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     socket.on('update_results', (groupedResults) => {
+        if (isLoading) {
+            console.log("Results update already in progress. Skipping.");
+            return;
+        }
+        isLoading = true;
         fullResults = groupedResults;
         populateContestSelector(Object.keys(groupedResults));
         const selectedContest = contestSelect.value || Object.keys(fullResults)[0];
-        renderPodium(selectedContest);
-        renderResultsForContest(selectedContest);
+        try {
+            renderPodium(selectedContest);
+            renderResultsForContest(selectedContest);
+        } finally {
+            isLoading = false; // <<< --- SET FLAG TO FALSE AFTER RENDERING
+        }
     });
 
     contestSelect.addEventListener('change', () => {

@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const contestId = urlParams.get('contest');
+    let isLoading = false;
 
     if (!contestId) {
         alert('No contest selected.');
@@ -10,6 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- MAIN FUNCTION TO LOAD AND RENDER SEGMENTS ---
     async function loadSegments() {
+        if (isLoading) {
+            console.log("Load already in progress. Skipping redundant call.");
+            return;
+        }
+        isLoading = true;
+
         try {
             // This now calls our new, more powerful endpoint
             const segments = await apiRequest(`/api/judging/contests/${contestId}/segments`);
@@ -49,6 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             document.getElementById('segments-container').innerHTML = '<p class="card">Error loading segments.</p>';
+        } finally {
+            // <<< --- NEW: IMPORTANT! Always set the flag back to false when done.
+            isLoading = false;
         }
     }
 

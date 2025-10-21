@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const contestSelect = document.getElementById('contest-select');
     const gridContainer = document.getElementById('progress-grid-container');
     const socket = io();
+    let isLoading = false;
 
     // 1. Populate the contest dropdown
     async function populateContests() {
@@ -31,6 +32,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (isLoading) {
+            console.log("Progress grid load already in progress. Skipping.");
+            return;
+        }
+        isLoading = true;
+
         gridContainer.innerHTML = '<p>Loading progress...</p>';
 
         try {
@@ -42,6 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
             renderGrid(statusData);
         } catch (error) {
             gridContainer.innerHTML = '<p>Failed to load judging progress.</p>';
+        } finally {
+            isLoading = false; // <<< --- ADD THIS FINALLY BLOCK
         }
     }
     

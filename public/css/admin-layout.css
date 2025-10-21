@@ -1,0 +1,101 @@
+/* ================================================= */
+/* FILE: public/css/admin-layout.css (MODIFIED)      */
+/* ================================================= */
+
+.admin-layout {
+    display: flex;
+    max-height: 100vh; /* Changed to fill the entire viewport height */
+}
+
+/* The Sidebar Itself - now a flex container to push footer down */
+.admin-sidebar {
+    width: 260px;
+    min-height: 100vh;
+    background-color: var(--form-bg-color);
+    border-right: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+}
+
+/* New: Logo styles */
+.sidebar-logo-container {
+    text-align: center;
+    padding: 1.5rem 1rem 1rem 1rem;
+}
+
+.sidebar-logo {
+    max-width: 70%;
+    height: auto;
+}
+
+.sidebar-header h3 {
+    margin-top: 0;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--primary-color);
+    text-align: center;
+}
+
+/* This new wrapper allows the footer to be pushed to the bottom */
+.sidebar-main-nav {
+    flex-grow: 1;
+}
+
+.sidebar-links {
+    padding: 1rem;
+}
+
+.sidebar-links a {
+    display: block;
+    color: var(--text-light-color);
+    text-decoration: none;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-links a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-dark-color);
+}
+
+.sidebar-links a.active {
+    background-color: var(--primary-color);
+    color: var(--dark-color);
+    font-weight: bold;
+}
+
+/* New: Footer and Logout Button Styles */
+.sidebar-footer {
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+#logout-button {
+    width: 100%;
+    background-color: #6c757d;
+    color: white;
+}
+
+#logout-button:hover {
+    background-color: #5a6268;
+}
+
+/* Main Content Area */
+.admin-main-content {
+    flex-grow: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+/* New: Header styles for the H1 inside the main content */
+.admin-main-content h1 {
+    margin-top: 0;
+}
+
+.admin-layout .container {
+    padding: 0;
+}
