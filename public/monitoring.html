@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Monitoring</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-layout.css">
+    <link rel="stylesheet" href="/css/monitoring.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <aside id="admin-sidebar-container"></aside>
+        <main class="admin-main-content">
+            <h1>System Monitoring Dashboard</h1>
+            <div class="kpi-grid">
+                <div class="card kpi-card">
+                    <h2>Active Users (<span id="connection-count">0</span>)</h2>
+                    <ul id="active-users-list" class="kpi-list">
+                        <li>Connecting...</li>
+                    </ul>
+                </div>
+                <div class="card kpi-card">
+                    <h2>System Status</h2>
+                    <p><strong>Status:</strong> <span class="status-online">Online</span></p>
+                    <p><strong>Server Uptime:</strong> <span id="server-uptime">--:--:--</span></p>
+                </div>
+                <div class="card kpi-card">
+                    <h2>Event Progress</h2>
+                    <p><strong>Total Scores Submitted:</strong> <span id="total-scores">0</span></p>
+                    <p><strong>Last Score Submitted:</strong></p>
+                    <div id="last-score-feed" class="activity-feed">
+                        <span>No scores submitted yet.</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/session-tracker.js"></script> 
+    <script src="/js/admin-sidebar.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/monitoring.js"></script>
+</body>
+</html>

@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
     let isLoading = false;
 
+   socket.on('connect', () => console.log('✅ Connected to WebSocket server'));
+
     // 1. Populate the contest dropdown
     async function populateContests() {
         try {

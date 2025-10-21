@@ -11,6 +11,7 @@
 
         const navLinks = [
             { href: '/dashboard.html', text: 'Dashboard' },
+            { href: '/monitoring.html', text: 'Monitoring' },
             { href: '/judging-progress.html', text: 'Judging Progress' },
             { href: '/manage-scores.html', text: 'Manage Scores' },
             { href: '/results.html', text: 'Live Tabulation' }

@@ -65,6 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- REAL-TIME UPDATE LOGIC ---
     const socket = io();
 
+    socket.on('connect', () => console.log('✅ Connected to WebSocket server'));
+
     // Listen for the 'update_results' event from the server.
     // This event is our general signal that "something has changed".
     socket.on('update_results', () => {

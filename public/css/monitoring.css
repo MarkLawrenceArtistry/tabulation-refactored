@@ -1,0 +1,65 @@
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+}
+
+.kpi-card h2 {
+    margin-top: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.kpi-card p {
+    font-size: 1.1rem;
+    margin: 0.5rem 0;
+}
+
+.kpi-list {
+    list-style-type: none;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.kpi-list li {
+    padding: 0.5rem;
+    border: none;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    background-color: rgba(0,0,0,0.2);
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 0.2em 0.5em;
+    font-size: 0.75em;
+    font-weight: bold;
+    border-radius: 10px;
+    margin-left: 0.5rem;
+}
+
+.role-admin, .role-superadmin {
+    background-color: var(--primary-color);
+    color: var(--dark-color);
+}
+
+.role-judge {
+    background-color: #6c757d;
+    color: white;
+}
+
+.status-online {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.activity-feed {
+    background-color: rgba(0,0,0,0.2);
+    padding: 0.75rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9rem;
+}

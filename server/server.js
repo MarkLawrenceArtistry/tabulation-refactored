@@ -18,6 +18,9 @@ const JWT_SECRET = 'your_super_secret_key_change_this';
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
+const activeUsers = {}; // Stores { socketId: { username, role } }
+const serverStartTime = Date.now();
+
 app.use(cors()); app.use(express.json()); app.use(express.static('public')); app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // --- FILE UPLOAD SETUP ---
@@ -60,7 +63,72 @@ const calculateAndEmitResults = () => {
 };
 
 // --- SOCKET.IO CONNECTION ---
-io.on('connection', (socket) => { console.log('A user connected'); calculateAndEmitResults(); socket.on('disconnect', () => console.log('User disconnected')); });
+// This function will gather all KPIs and broadcast them.
+const emitKpiUpdate = () => {
+    // Use callbacks as the sqlite3 library expects, avoiding the problematic try/catch
+    db.get("SELECT COUNT(*) as count FROM scores", (err1, scoreCountResult) => {
+        if (err1) {
+            console.error("KPI Error getting score count:", err1.message);
+            return;
+        }
+
+        db.get(`
+            SELECT u.username as judge_name, c.name as candidate_name, s.score
+            FROM scores s
+            JOIN users u ON s.judge_id = u.id
+            JOIN candidates c ON s.candidate_id = c.id
+            ORDER BY s.id DESC LIMIT 1
+        `, (err2, lastScoreResult) => {
+            if (err2) {
+                console.error("KPI Error getting last score:", err2.message);
+                return;
+            }
+
+            const kpis = {
+                activeUsers: Object.values(activeUsers),
+                serverUptime: Math.floor((Date.now() - serverStartTime) / 1000),
+                connectionCount: Object.keys(activeUsers).length,
+                totalScoresSubmitted: scoreCountResult ? scoreCountResult.count : 0,
+                lastScore: lastScoreResult || null // This will be null if no scores exist
+            };
+
+            // Emit only to admins/superadmins
+            Object.keys(activeUsers).forEach(socketId => {
+                const user = activeUsers[socketId];
+                if (['admin', 'superadmin'].includes(user.role)) {
+                    io.to(socketId).emit('kpi_update', kpis);
+                }
+            });
+        });
+    });
+};
+// --- SOCKET.IO CONNECTION ---
+io.on('connection', (socket) => {
+    console.log(`A user connected with socket ID: ${socket.id}`);
+    calculateAndEmitResults(); // Still emit results to everyone on new connection
+
+    // New event for a client to authenticate its socket connection
+    socket.on('client_auth', (token) => {
+        if (token) {
+            jwt.verify(token, JWT_SECRET, (err, user) => {
+                if (!err) {
+                    activeUsers[socket.id] = { username: user.username, role: user.role };
+                    console.log(`Socket ${socket.id} authenticated as ${user.username}`);
+                    emitKpiUpdate(); // Send updated KPIs to all admins
+                }
+            });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        const disconnectedUser = activeUsers[socket.id];
+        if (disconnectedUser) {
+            console.log(`User ${disconnectedUser.username} disconnected.`);
+        }
+        delete activeUsers[socket.id];
+        emitKpiUpdate(); // Send updated KPIs to all admins
+    });
+});
 
 // === API ROUTES ===
 app.post('/api/auth/login', (req, res) => { const { username, password } = req.body; db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => { if (err || !user) return res.status(401).json({ message: 'Invalid credentials.' }); bcrypt.compare(password, user.password_hash, (err, isMatch) => { if (err || !isMatch) return res.status(401).json({ message: 'Invalid credentials.' }); const payload = { id: user.id, username: user.username, role: user.role }; const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' }); res.json({ token, user: payload }); }); }); });
@@ -308,7 +376,8 @@ app.post('/api/judging/scores', authenticateToken, authorizeRoles('judge'), (req
                     }
                     db.run("COMMIT", () => {
                         res.status(201).json({ message: "Scores submitted successfully." });
-                        calculateAndEmitResults(); // This is important to update live results
+                        calculateAndEmitResults();
+                        emitKpiUpdate(); // This is important to update live results
                     });
                 });
             });
@@ -437,8 +506,30 @@ app.delete('/api/admin/unlock-scores', authenticateToken, authorizeRoles('admin'
 
         // IMPORTANT: Recalculate and emit results to all clients after deleting scores.
         calculateAndEmitResults();
+        emitKpiUpdate();
 
         res.json({ message: `Successfully unlocked segment for judge. ${this.changes} score entries removed.` });
+    });
+});
+app.get('/api/admin/kpis', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    // This is a simplified version of the logic in emitKpiUpdate for a single request
+    db.get("SELECT COUNT(*) as count FROM scores", (err, scoreCountResult) => {
+        db.get(`
+            SELECT u.username as judge_name, c.name as candidate_name, s.score
+            FROM scores s
+            JOIN users u ON s.judge_id = u.id
+            JOIN candidates c ON s.candidate_id = c.id
+            ORDER BY s.id DESC LIMIT 1
+        `, (err, lastScoreResult) => {
+            const kpis = {
+                activeUsers: Object.values(activeUsers),
+                serverUptime: Math.floor((Date.now() - serverStartTime) / 1000),
+                connectionCount: Object.keys(activeUsers).length,
+                totalScoresSubmitted: scoreCountResult ? scoreCountResult.count : 0,
+                lastScore: lastScoreResult || null
+            };
+            res.json(kpis);
+        });
     });
 });
 
