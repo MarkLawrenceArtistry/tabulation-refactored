@@ -11,7 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let fullResults = {};
     let previousRanks = {};
     let rowPositions = {};
-    let previousPodium = { first: null, second: null, third: null };
+    let previousPodium = {
+        first: { id: null, score: null },
+        second: { id: null, score: null },
+        third: { id: null, score: null }
+    };
 
     socket.on('connect', () => console.log('✅ Connected to WebSocket server'));
     socket.on('disconnect', () => {
@@ -55,95 +59,102 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderPodium(contestName) {
-    const results = fullResults[contestName];
-    if (!results || results.length === 0) return;
+        const results = fullResults[contestName];
+        if (!results || results.length === 0) return;
 
-    const sorted = [...results].sort((a, b) => parseFloat(b.total_score) - parseFloat(a.total_score));
-    const top3 = [sorted[0], sorted[1], sorted[2]];
+        const sorted = [...results].sort((a, b) => parseFloat(b.total_score) - parseFloat(a.total_score));
+        const top3 = [sorted[0], sorted[1], sorted[2]];
 
-    const podiums = [
-        { id: 'first', element: firstPlace, height: 230 },
-        { id: 'second', element: secondPlace, height: 210 },
-        { id: 'third', element: thirdPlace, height: 190 }
-    ];
+        const podiums = [
+            { id: 'first', element: firstPlace, height: 230 },
+            { id: 'second', element: secondPlace, height: 210 },
+            { id: 'third', element: thirdPlace, height: 190 }
+        ];
 
-    const gradients = [
-        'linear-gradient(to bottom, #FFD700 0%, #E6BE00 60%, #B8860B 100%)',
-        'linear-gradient(to bottom, #C0C0C0 0%, #A9A9A9 60%, #707070 100%)',
-        'linear-gradient(to bottom, #CD7F32 0%, #A65E2E 60%, #8B4513 100%)'
-    ];
+        const gradients = [
+            'linear-gradient(to bottom, #FFD700 0%, #E6BE00 60%, #B8860B 100%)',
+            'linear-gradient(to bottom, #C0C0C0 0%, #A9A9A9 60%, #707070 100%)',
+            'linear-gradient(to bottom, #CD7F32 0%, #A65E2E 60%, #8B4513 100%)'
+        ];
 
-    const rankLabels = ['1st', '2nd', '3rd'];
-    const prevValues = Object.values(previousPodium);
+        const rankLabels = ['1st', '2nd', '3rd'];
 
-    podiums.forEach((p, i) => {
-        const candidate = top3[i];
-        const prevId = previousPodium[p.id];
-        const newId = candidate?.candidate_number || null;
+        podiums.forEach((p, i) => {
+            const candidate = top3[i];
+            const prevData = previousPodium[p.id]; // Correctly get the previous data object
+            
+            const newId = candidate?.candidate_number || null;
+            const newScore = candidate ? parseFloat(candidate.total_score || 0).toFixed(2) : '0.00';
 
-        // detect any change
-        if (prevId !== newId) {
-            const oldElement = p.element;
+            // YOUR ANIMATION LOGIC - UNTOUCHED
+            // This runs ONLY when the candidate in the slot changes.
+            if (prevData.id !== newId) {
+                const oldElement = p.element;
+                const prevValues = Object.values(previousPodium).map(val => val.id);
 
-            // apply fall animation to the outgoing candidate
-            if (prevId) {
-                oldElement.classList.add('fall');
-                setTimeout(() => oldElement.classList.remove('fall'), 800);
-            }
-
-            // fade out before swapping content
-            oldElement.classList.add('fade-out');
-
-            setTimeout(() => {
-                // update podium HTML
-                if (candidate) {
-                    oldElement.innerHTML = `
-                        <img src="${candidate.image_url || '/images/placeholder.png'}" alt="${candidate.candidate_name}">
-                        <div class="podium-name">#${candidate.candidate_number} ${candidate.candidate_name}</div>
-                        <div class="podium-score">${parseFloat(candidate.total_score || 0).toFixed(2)}</div>
-                        <div class="podium-rank podium-rank-${i + 1}">${rankLabels[i]}</div>
-                    `;
-                    oldElement.style.background = gradients[i];
-                } else {
-                    oldElement.innerHTML = `
-                        <img src="/images/placeholder.png" alt="Empty">
-                        <div class="podium-name">N/A</div>
-                        <div class="podium-score">0.00</div>
-                        <div class="podium-rank podium-rank-${i + 1}">${rankLabels[i]}</div>
-                    `;
-                    oldElement.style.background = '#444';
+                if (prevData.id) {
+                    oldElement.classList.add('fall');
+                    setTimeout(() => oldElement.classList.remove('fall'), 800);
                 }
 
-                oldElement.classList.remove('fade-out');
-                oldElement.classList.add('fade-in');
+                oldElement.classList.add('fade-out');
 
-                // Determine animation type
-                const wasInPodium = prevValues.includes(newId);
-                if (!wasInPodium && newId) {
-                    // brand new entrant rises
-                    oldElement.classList.add('rise');
-                } else {
-                    // if swapped among podiums
-                    const prevIndex = prevValues.indexOf(newId);
-                    if (prevIndex > i) oldElement.classList.add('rise');
-                    else if (prevIndex < i) oldElement.classList.add('fall');
-                }
-
-                // cleanup animations
                 setTimeout(() => {
-                    oldElement.classList.remove('fade-in', 'rise', 'fall');
-                }, 1600);
-            }, 800);
-        }
+                    if (candidate) {
+                        oldElement.innerHTML = `
+                            <img src="${candidate.image_url || '/images/placeholder.png'}" alt="${candidate.candidate_name}">
+                            <div class="podium-name">#${candidate.candidate_number} ${candidate.candidate_name}</div>
+                            <div class="podium-score">${newScore}</div>
+                            <div class="podium-rank podium-rank-${i + 1}">${rankLabels[i]}</div>
+                        `;
+                        oldElement.style.background = gradients[i];
+                    } else {
+                        oldElement.innerHTML = `
+                            <img src="/images/placeholder.png" alt="Empty">
+                            <div class="podium-name">N/A</div>
+                            <div class="podium-score">0.00</div>
+                            <div class="podium-rank podium-rank-${i + 1}">${rankLabels[i]}</div>
+                        `;
+                        oldElement.style.background = '#444';
+                    }
 
-        // smooth height transition
-        requestAnimationFrame(() => {
-            p.element.style.height = `${p.height}px`;
+                    oldElement.classList.remove('fade-out');
+                    oldElement.classList.add('fade-in');
+
+                    const wasInPodium = prevValues.includes(newId);
+                    if (!wasInPodium && newId) {
+                        oldElement.classList.add('rise');
+                    } else {
+                        const prevIndex = prevValues.indexOf(newId);
+                        if (prevIndex > i) oldElement.classList.add('rise');
+                        else if (prevIndex < i && prevIndex !== -1) oldElement.classList.add('fall');
+                    }
+
+                    setTimeout(() => {
+                        oldElement.classList.remove('fade-in', 'rise', 'fall');
+                    }, 1600);
+                }, 800);
+            } 
+            // --- THIS IS THE NEW CODE ---
+            // This runs ONLY when the candidate is the same, but the score is different.
+            else if (prevData.id === newId && prevData.score !== newScore) {
+                const scoreElement = p.element.querySelector('.podium-score');
+                if (scoreElement) {
+                    scoreElement.textContent = newScore;
+                }
+            }
+            // --- END OF NEW CODE ---
+
+
+            // YOUR HEIGHT TRANSITION - UNTOUCHED
+            requestAnimationFrame(() => {
+                p.element.style.height = `${p.height}px`;
+            });
+
+            // Correctly update the state with both id and score
+            previousPodium[p.id] = { id: newId, score: newScore };
         });
-
-        previousPodium[p.id] = newId;
-    });
-}
+    }
 
 
 

@@ -87,6 +87,11 @@ function setupFormSubmission(contestId) {
     const form = document.getElementById('judging-form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        const isConfirmed = confirm("Are you sure you want to submit all scores for this segment?\n\nThis action cannot be undone.");
+        if (!isConfirmed) {
+            return; // Stop the function if the user clicks "Cancel"
+        }
         
         const submitBtn = document.getElementById('submit-scores-btn');
         submitBtn.disabled = true;

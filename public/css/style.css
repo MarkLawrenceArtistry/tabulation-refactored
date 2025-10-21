@@ -154,7 +154,6 @@ ul {
 li {
     background: transparent; /* UPDATED */
     padding: 0.5rem;
-    border: 1px solid var(--border-color); /* UPDATED */
     margin-bottom: 0.5rem;
     border-radius: 4px;
 }
@@ -207,7 +206,6 @@ li {
     border: 1px solid var(--border-color);
     border-radius: 16px; /* UPDATED */
     padding: 1.5rem;
-    box-shadow: 0 8px 25px var(--shadow-color); /* UPDATED */
     display: flex;
     flex-direction: column;
     backdrop-filter: blur(10px); /* UPDATED */
@@ -357,16 +355,6 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
     display: grid;
     grid-template-columns: repeat(4, 1fr); /* UPDATED */
     gap: 1.5rem;
-}
-.contest-card {
-    background-color: var(--form-bg-color);
-    border-radius: 16px; /* UPDATED */
-    box-shadow: 0 8px 25px var(--shadow-color); /* UPDATED */
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--border-color); /* UPDATED */
-    backdrop-filter: blur(10px); /* UPDATED */
 }
 .contest-card img {
     width: 100%;

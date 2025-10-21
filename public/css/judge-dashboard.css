@@ -71,8 +71,6 @@ button:hover {
     margin: 2rem;
     background-color: var(--form-bg-color); 
     backdrop-filter: blur(10px);
-    border: 1px solid var(--border-color);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
 }
 
 .instructions-container h2 {
@@ -82,7 +80,6 @@ button:hover {
     margin-top: 0;
     margin-bottom: 1rem;
     padding-bottom: 1rem;
-    border-bottom: 2px solid var(--border-color);
 }
 
 .instructions-container ol {
@@ -94,7 +91,6 @@ button:hover {
 
 .instructions-container li {
     background-color: rgba(0,0,0,0.2); 
-    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 1rem 1.5rem 1rem 3.5rem;
     margin-bottom: 1rem;
@@ -149,7 +145,6 @@ button:hover {
     backdrop-filter: blur(10px);
     border: 1px solid var(--border-color);
     border-radius: 16px;
-    box-shadow: 0 4px 12px var(--shadow-color);
     overflow: hidden;
     display: flex;
     flex-direction: column;
