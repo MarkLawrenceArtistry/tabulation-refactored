@@ -50,12 +50,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const judges = [...new Set(data.map(item => item.judge_name))].sort();
         const segments = {};
 
-        // Group data by segment
+        // Group data by segment, now including IDs
         data.forEach(item => {
             if (!segments[item.segment_name]) {
-                segments[item.segment_name] = {};
+                segments[item.segment_name] = {
+                    segment_id: item.segment_id,
+                    statuses: {}
+                };
             }
-            segments[item.segment_name][item.judge_name] = item.is_submitted;
+            segments[item.segment_name].statuses[item.judge_name] = {
+                is_submitted: item.is_submitted,
+                judge_id: item.judge_id
+            };
         });
 
         let tableHtml = '<table class="progress-grid"><thead><tr><th>Segment</th>';
@@ -65,12 +71,26 @@ document.addEventListener('DOMContentLoaded', () => {
         tableHtml += '</tr></thead><tbody>';
 
         for (const segmentName in segments) {
+            const segmentInfo = segments[segmentName];
             tableHtml += `<tr><td>${segmentName}</td>`;
             judges.forEach(judge => {
-                const isSubmitted = segments[segmentName][judge];
-                const statusClass = isSubmitted ? 'status-submitted' : 'status-pending';
-                const statusText = isSubmitted ? 'Submitted' : 'Pending';
-                tableHtml += `<td><span class="status-cell ${statusClass}">${statusText}</span></td>`;
+                const statusInfo = segmentInfo.statuses[judge];
+                const isSubmitted = statusInfo.is_submitted;
+                const buttonClass = isSubmitted ? 'status-submitted' : 'status-pending';
+                const buttonText = isSubmitted ? 'Unlock' : 'Pending';
+                const isDisabled = !isSubmitted ? 'disabled' : '';
+
+                // Add data attributes for the unlock action
+                const dataAttributes = isSubmitted ? 
+                    `data-judge-id="${statusInfo.judge_id}" data-segment-id="${segmentInfo.segment_id}" data-judge-name="${judge}" data-segment-name="${segmentName}"` 
+                    : '';
+
+                tableHtml += `
+                    <td class="status-cell">
+                        <button class="${buttonClass}" ${isDisabled} ${dataAttributes}>
+                            ${buttonText}
+                        </button>
+                    </td>`;
             });
             tableHtml += '</tr>';
         }
@@ -82,6 +102,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- EVENT LISTENERS ---
     contestSelect.addEventListener('change', () => {
         loadProgressGrid(contestSelect.value);
+    });
+
+    gridContainer.addEventListener('click', async (e) => {
+        // Target only the green "Unlock" buttons that are not disabled
+        if (!e.target.matches('button.status-submitted:not(:disabled)')) {
+            return;
+        }
+
+        const button = e.target;
+        const { judgeId, segmentId, judgeName, segmentName } = button.dataset;
+
+        const confirmation = confirm(
+            `ARE YOU SURE?\n\n` +
+            `This will UNLOCK the "${segmentName}" segment for judge "${judgeName}".\n\n` +
+            `This will delete their previously submitted scores for this segment, and they will be required to submit them again. This action cannot be undone.`
+        );
+
+        if (confirmation) {
+            try {
+                button.disabled = true;
+                button.textContent = 'Unlocking...';
+                
+                await apiRequest('/api/admin/unlock-scores', 'DELETE', {
+                    judge_id: parseInt(judgeId, 10),
+                    segment_id: parseInt(segmentId, 10)
+                });
+                
+                // NOTE: We don't need to manually update the UI here.
+                // The backend call to calculateAndEmitResults() will trigger the socket listener,
+                // which automatically re-renders the whole grid with the updated state.
+                
+            } catch (error) {
+                alert(`Failed to unlock segment: ${error.message}`);
+                // Re-enable button on failure
+                button.disabled = false;
+                button.textContent = 'Unlock';
+            }
+        }
     });
 
     // Listen for real-time updates

@@ -388,7 +388,9 @@ app.get('/api/admin/judging-status', authenticateToken, authorizeRoles('admin', 
             JOIN criteria cr ON sc.criterion_id = cr.id
         )
         SELECT
+            ac.judge_id,
             ac.judge_name,
+            ac.segment_id,
             ac.segment_name,
             CASE WHEN js.segment_id IS NOT NULL THEN 1 ELSE 0 END as is_submitted
         FROM
@@ -405,6 +407,38 @@ app.get('/api/admin/judging-status', authenticateToken, authorizeRoles('admin', 
             return res.status(500).json({ message: "Database error while fetching judging status." });
         }
         res.json(rows);
+    });
+});
+// --- UNLOCK SCORES FOR A JUDGE (ADMIN ONLY) ---
+app.delete('/api/admin/unlock-scores', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { judge_id, segment_id } = req.body;
+
+    if (!judge_id || !segment_id) {
+        return res.status(400).json({ message: "Judge ID and Segment ID are required." });
+    }
+
+    // This query is precise: it only deletes scores for the given judge that belong to criteria within the given segment.
+    const sql = `
+        DELETE FROM scores 
+        WHERE judge_id = ? 
+        AND criterion_id IN (SELECT id FROM criteria WHERE segment_id = ?)
+    `;
+
+    db.run(sql, [judge_id, segment_id], function(err) {
+        if (err) {
+            console.error("Error unlocking scores:", err.message);
+            return res.status(500).json({ message: "Database error while unlocking scores." });
+        }
+        
+        if (this.changes === 0) {
+            // This can happen if the button is clicked twice quickly. It's not an error.
+            return res.json({ message: "No scores found to unlock, or they were already unlocked." });
+        }
+
+        // IMPORTANT: Recalculate and emit results to all clients after deleting scores.
+        calculateAndEmitResults();
+
+        res.json({ message: `Successfully unlocked segment for judge. ${this.changes} score entries removed.` });
     });
 });
 
