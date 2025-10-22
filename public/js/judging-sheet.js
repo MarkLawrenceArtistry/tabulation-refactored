@@ -3,6 +3,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const contestId = urlParams.get('contest');
     const segmentId = urlParams.get('segment');
 
+    const user = JSON.parse(localStorage.getItem('user'))
+    const cacheKey = `cachedScores_judge_${user.id}_segment_${segmentId}`;
+
     if (!contestId || !segmentId) {
         alert('Missing contest or segment ID.');
         window.location.href = '/judge-dashboard.html';
@@ -14,20 +17,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     try {
-        // Fetch data using the NEW, CORRECT endpoints for judges
         const [criteria, candidates] = await Promise.all([
             apiRequest(`/api/judging/segments/${segmentId}/criteria`),
             apiRequest(`/api/contests/${contestId}/candidates`)
         ]);
         
-        // We still need the segment name for the header.
         const segmentsForContest = await apiRequest(`/api/judging/contests/${contestId}/segments`);
         const currentSegment = segmentsForContest.find(s => s.id == segmentId);
         
         document.getElementById('segment-name-header').textContent = currentSegment.name;
-        document.getElementById('segment-percentage-display').textContent = `(${currentSegment.percentage}% Overall)`;
+        document.getElementById('segment-percentage-display').textContent = `(${currentSegment.percentage}% Overall)`; 
+
         populateCandidateCards(criteria, candidates);
-        setupFormSubmission(contestId);
+
+        // --- ADD THIS LINE ---
+        // Load any cached scores after the inputs have been created
+        loadScoresFromCache(cacheKey); 
+        
+        setupFormSubmission(contestId, cacheKey); // Pass cacheKey to the setup function
 
     } catch (error) {
         // The error message from the new api.js will be more descriptive now
@@ -82,9 +89,11 @@ function populateCandidateCards(criteria, candidates) {
 
         container.appendChild(card);
     });
+
+    container.addEventListener('input', () => saveScoresToCache(`cachedScores_judge_${JSON.parse(localStorage.getItem('user')).id}_segment_${new URLSearchParams(window.location.search).get('segment')}`));
 }
 
-function setupFormSubmission(contestId) {
+function setupFormSubmission(contestId, cacheKey) {
     const form = document.getElementById('judging-form');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -137,6 +146,8 @@ function setupFormSubmission(contestId) {
         try {
             await apiRequest('/api/judging/scores', 'POST', { scores: scoresPayload, contest_id: contestId });
             
+            clearScoresFromCache(cacheKey);
+
             // On success, the modal will handle the redirect.
             showSuccessModal(
                 "Scores Recorded!",
@@ -172,4 +183,59 @@ function setupFormSubmission(contestId) {
             }
         }
     });
+}
+
+function saveScoresToCache(cacheKey) {
+    const scoreInputs = document.querySelectorAll('.score-input');
+    const scoresToCache = [];
+    scoreInputs.forEach(input => {
+        if (input.value.trim() !== '') { // Only save if there is a value
+            scoresToCache.push({
+                id: input.id, // Use the unique element ID for easy mapping
+                value: input.value
+            });
+        }
+    });
+
+    if (scoresToCache.length > 0) {
+        localStorage.setItem(cacheKey, JSON.stringify(scoresToCache));
+    } else {
+        // If all fields are empty, clear the cache
+        localStorage.removeItem(cacheKey);
+    }
+}
+
+function loadScoresFromCache(cacheKey) {
+    const cachedScores = localStorage.getItem(cacheKey);
+    if (cachedScores) {
+        try {
+            const scores = JSON.parse(cachedScores);
+            let restoredCount = 0;
+            scores.forEach(score => {
+                const inputField = document.getElementById(score.id);
+                if (inputField) {
+                    inputField.value = score.value;
+                    restoredCount++;
+                }
+            });
+            if (restoredCount > 0) {
+                console.log(`Restored ${restoredCount} scores from cache.`);
+                // Optional: Add a small, non-intrusive notification for the user
+                const notification = document.createElement('div');
+                notification.textContent = 'Restored your unsaved scores.';
+                notification.style.cssText = 'position:fixed; bottom:20px; right:20px; background-color:#10b981; color:white; padding:10px 15px; border-radius:5px; z-index:1000;';
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 3000);
+            }
+        } catch (e) {
+            console.error('Failed to parse cached scores:', e);
+            // Clear corrupted data
+            localStorage.removeItem(cacheKey);
+        }
+    }
+}
+
+function clearScoresFromCache(cacheKey) {
+    localStorage.removeItem(cacheKey);
+    console.log('Cache cleared after successful submission.');
 }
