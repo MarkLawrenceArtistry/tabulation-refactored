@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backup & Restore</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-layout.css">
+    <style>
+        .warning-box {
+            border: 2px solid #d9534f;
+            background-color: rgba(217, 83, 79, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        .warning-box h3 { color: #d9534f; margin-top: 0; }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- The sidebar will be injected here -->
+        <aside id="admin-sidebar-container"></aside>
+
+        <!-- Main content area -->
+        <main class="admin-main-content">
+            <h1>Backup & Restore</h1>
+            
+            <!-- Backup Section -->
+            <div class="card">
+                <h2>Create Backup</h2>
+                <p>Click the button below to download a complete backup of the current database. This file contains all contests, candidates, scores, and users. Store it in a safe place.</p>
+                <button id="backup-btn">Download Database Backup</button>
+            </div>
+
+            <!-- Restore Section -->
+            <div class="card">
+                <h2>Restore from Backup</h2>
+                <p>
+                    To restore the system, you must first <strong>unzip</strong> your downloaded backup file. 
+                    Then, select the <strong>`tabulation.db`</strong> file from within that unzipped folder.
+                </p>
+                
+                <div class="warning-box">
+                    <h3><strong>WARNING:</strong> This is a destructive action!</h3>
+                    <p>
+                        Restoring will completely <strong>erase and overwrite</strong> the current database. 
+                        This does <strong>NOT</strong> restore images, only the contest data and scores.
+                        Any changes made since the backup was created will be lost. This action cannot be undone.
+                    </p>
+                </div>
+                
+                <form id="restore-form" style="margin-top: 1.5rem;">
+                    <label for="restore-file">Select the `tabulation.db` file from your unzipped backup:</label>
+                    <input type="file" id="restore-file" name="backupFile" accept=".db" required>
+                    <button type="submit" id="restore-btn" class="btn-delete">Restore System from .db File</button>
+                </form>
+            </div>
+        </main>
+    </div>
+    
+    <script src="/js/admin-sidebar.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/backup.js"></script> <!-- We will create this file next -->
+</body>
+</html>

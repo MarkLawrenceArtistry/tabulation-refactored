@@ -16,7 +16,8 @@
             { href: '/manage-scores.html', text: 'Manage Scores' },
             { href: '/results.html', text: 'Live Tabulation' },
             { href: '/awards.html', text: 'Manage Awards' },
-            { href: '/report.html', text: 'Printable Reports' }
+            { href: '/report.html', text: 'Printable Reports' },
+            { href: '/backup.html', text: 'Backup & Restore' }
         ];
 
         const linksHtml = navLinks.map(link => `

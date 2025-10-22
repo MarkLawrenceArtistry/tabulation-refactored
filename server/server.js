@@ -622,6 +622,104 @@ app.get('/api/reports/full-tabulation', authenticateToken, authorizeRoles('admin
     }
 });
 
+// --- BACKUP & RESTORE ENDPOINTS ---
+const archiver = require('archiver'); // Add this require statement at the top of your server.js file
+const UPLOADS_PATH = path.join(__dirname, '../uploads')
+
+app.get('/api/admin/backup', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    const backupFilename = `tabulation_backup_${timestamp}.zip`;
+
+    // Set headers to tell the browser it's a zip file download
+    res.attachment(backupFilename);
+
+    const archive = archiver('zip', {
+        zlib: { level: 9 } // Sets the compression level.
+    });
+
+    // Listen for all archive data to be written
+    archive.on('finish', () => {
+        console.log('Archive stream finished.');
+    });
+
+    // Good practice to catch warnings (e.g., stat failures and other non-blocking errors)
+    archive.on('warning', (err) => {
+        if (err.code === 'ENOENT') {
+            console.warn('Archiver warning:', err);
+        } else {
+            throw err;
+        }
+    });
+
+    // Good practice to catch this error explicitly
+    archive.on('error', (err) => {
+        throw err;
+    });
+
+    // Pipe archive data to the response
+    archive.pipe(res);
+
+    // 1. Add the database file to the archive
+    archive.file(DB_PATH, { name: 'tabulation.db' });
+
+    // 2. Add the entire 'uploads' directory to a folder named 'uploads' inside the zip
+    // Check if the uploads directory exists before trying to add it
+    if (fs.existsSync(UPLOADS_PATH)) {
+        archive.directory(UPLOADS_PATH, 'uploads');
+    }
+    
+    // Finalize the archive (this is when it starts streaming the data)
+    archive.finalize();
+});
+
+// For restore, we need a separate multer instance to handle the upload.
+const restoreStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, './'); // Save temporarily in the root project directory
+    },
+    filename: (req, file, cb) => {
+        cb(null, 'backup_upload.tmp'); // Use a temporary name
+    }
+});
+const uploadRestore = multer({ storage: restoreStorage });
+
+app.post('/api/admin/restore', authenticateToken, authorizeRoles('admin', 'superadmin'), uploadRestore.single('backupFile'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'No backup file was uploaded.' });
+    }
+
+    const tempPath = req.file.path;
+
+    // CRITICAL STEP: Close the current database connection before overwriting the file.
+    db.close((err) => {
+        if (err) {
+            console.error('Error closing database before restore:', err.message);
+            return res.status(500).json({ message: 'Could not prepare for restore.' });
+        }
+
+        console.log('Database closed. Proceeding with file replacement.');
+
+        // Replace the current database file with the uploaded one.
+        fs.rename(tempPath, DB_PATH, (renameErr) => {
+            if (renameErr) {
+                console.error('Error replacing database file:', renameErr);
+                return res.status(500).json({ message: 'Failed to restore database file.' });
+            }
+
+            console.log('Database file replaced successfully. Server will now restart.');
+            
+            // Send success response BEFORE shutting down.
+            res.json({ message: 'Restore successful. The server is restarting now. Please wait about 10 seconds and then refresh your browser.' });
+
+            // CRITICAL STEP 2: Restart the server to load the new database.
+            // Using process.exit() will trigger an automatic restart if you are using PM2 or nodemon.
+            setTimeout(() => {
+                process.exit(1); 
+            }, 1000); // Wait 1 second to ensure the response is sent.
+        });
+    });
+});
+
 // --- SERVER START & SHUTDOWN ---
 server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 process.on('SIGINT', () => db.close(() => process.exit(0)));
