@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Awards</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-layout.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar will be injected here -->
+        <aside id="admin-sidebar-container"></aside>
+        
+        <!-- Main content area -->
+        <main class="admin-main-content">
+            <h1>Manage Awards & Winners</h1>
+            <div class="grid-container">
+                <!-- Column 1: Create/Manage Awards -->
+                <div class="card">
+                    <h2>Create Award</h2>
+                    <form id="create-award-form" class="vertical-form">
+                        <input type="text" name="name" placeholder="Award Name (e.g., Best in Gown)" required>
+                        <select name="type" required>
+                            <option value="" disabled selected>Select Award Type</option>
+                            <option value="major">Major Award</option>
+                            <option value="minor">Minor Award</option>
+                            <option value="special">Special Award</option>
+                        </select>
+                        <button type="submit">Create Award</button>
+                    </form>
+                    
+                    <h3>Existing Awards</h3>
+                    <ul id="awards-list" class="item-list">
+                        <li>Loading...</li>
+                    </ul>
+                </div>
+
+                <!-- Column 2: Assign Winners -->
+                <div class="card">
+                    <h2>Assign Winner</h2>
+                    <form id="assign-winner-form" class="vertical-form">
+                        <select id="contest-select" required>
+                            <option value="">-- Select a Contest --</option>
+                        </select>
+                        <select id="award-select" name="award_id" required>
+                            <option value="">-- Select an Award --</option>
+                        </select>
+                        <select id="candidate-select" name="candidate_id" required>
+                            <option value="">-- Select a Contest First --</option>
+                        </select>
+                        <button type="submit">Assign Winner</button>
+                    </form>
+
+                    <h3>Official Winners List</h3>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Contest</th>
+                                    <th>Award</th>
+                                    <th>Winner</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="winners-table-body">
+                                <tr><td colspan="4">No winners assigned yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="/js/admin-sidebar.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/awards.js"></script>
+</body>
+</html>

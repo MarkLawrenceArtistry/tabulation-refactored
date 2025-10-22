@@ -14,7 +14,9 @@
             { href: '/monitoring.html', text: 'Monitoring' },
             { href: '/judging-progress.html', text: 'Judging Progress' },
             { href: '/manage-scores.html', text: 'Manage Scores' },
-            { href: '/results.html', text: 'Live Tabulation' }
+            { href: '/results.html', text: 'Live Tabulation' },
+            { href: '/awards.html', text: 'Manage Awards' },
+            { href: '/report.html', text: 'Printable Reports' }
         ];
 
         const linksHtml = navLinks.map(link => `

@@ -21,7 +21,11 @@ const io = new Server(server, { cors: { origin: "*" } });
 const activeUsers = {}; // Stores { socketId: { username, role } }
 const serverStartTime = Date.now();
 
-app.use(cors()); app.use(express.json()); app.use(express.static('public')); app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/node_modules', express.static(path.join(__dirname, '../node_modules')));
 
 // --- FILE UPLOAD SETUP ---
 const storage = multer.diskStorage({ destination: (req, file, cb) => { cb(null, 'uploads/'); }, filename: (req, file, cb) => { cb(null, Date.now() + path.extname(file.originalname)); } });
@@ -536,8 +540,87 @@ app.get('/api/admin/kpis', authenticateToken, authorizeRoles('admin', 'superadmi
 // --- AWARDS & PUBLIC RESULTS ---
 app.get('/api/awards', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.all("SELECT * FROM awards", [], (err, rows) => res.json(rows)); });
 app.post('/api/awards', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { const { name, type } = req.body; db.run('INSERT INTO awards (name, type) VALUES (?, ?)', [name, type], function (err) { if (err) return res.status(409).json({ message: "Award exists." }); res.status(201).json({ id: this.lastID, name, type }); }); });
+app.delete('/api/awards/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    db.run('DELETE FROM awards WHERE id = ?', [req.params.id], function (err) {
+        if (err) return res.status(500).json({ message: "DB Error deleting award." });
+        res.sendStatus(204);
+    });
+});
 app.post('/api/award-winners', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { const { award_id, candidate_id } = req.body; db.run('INSERT OR REPLACE INTO award_winners (award_id, candidate_id) VALUES (?, ?)', [award_id, candidate_id], (err) => { if (err) return res.status(500).json({ message: "DB Error." }); res.status(201).json({ message: "Winner assigned successfully" }); }); });
 app.get('/api/public-winners', (req, res) => { const sql = `SELECT a.name as award_name, a.type, c.name as candidate_name, c.image_url FROM award_winners aw JOIN awards a ON aw.award_id = a.id JOIN candidates c ON aw.candidate_id = c.id ORDER BY a.type, a.name`; db.all(sql, [], (err, rows) => { if (err) return res.status(500).send("Error"); res.json(rows); }); });
+
+// --- FULL TABULATION REPORT ENDPOINT ---
+app.get('/api/reports/full-tabulation', authenticateToken, authorizeRoles('admin', 'superadmin'), async (req, res) => {
+    const { contest_id } = req.query;
+    if (!contest_id) {
+        return res.status(400).json({ message: "Contest ID is required." });
+    }
+
+    try {
+        const dbAll = (sql, params) => new Promise((resolve, reject) => {
+            db.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows));
+        });
+
+        const contestSql = `SELECT name FROM contests WHERE id = ?`;
+        const segmentsSql = `SELECT id, name, percentage FROM segments WHERE contest_id = ? ORDER BY id`;
+        const criteriaSql = `SELECT id, name, max_score, segment_id FROM criteria WHERE segment_id IN (SELECT id FROM segments WHERE contest_id = ?) ORDER BY segment_id, id`;
+        const candidatesSql = `SELECT id, name, candidate_number FROM candidates WHERE contest_id = ? ORDER BY candidate_number`;
+        const judgesSql = `SELECT id, username FROM users WHERE role = 'judge' ORDER BY id`;
+        const scoresSql = `SELECT judge_id, candidate_id, criterion_id, score FROM scores WHERE contest_id = ?`;
+
+        const [
+            contestRows,
+            segments,
+            criteria,
+            candidates,
+            judges,
+            scores
+        ] = await Promise.all([
+            dbAll(contestSql, [contest_id]),
+            dbAll(segmentsSql, [contest_id]),
+            dbAll(criteriaSql, [contest_id]),
+            dbAll(candidatesSql, [contest_id]),
+            dbAll(judgesSql, []),
+            dbAll(scoresSql, [contest_id])
+        ]);
+
+        if (contestRows.length === 0) {
+            return res.status(404).json({ message: "Contest not found." });
+        }
+
+        // --- Data Structuring ---
+        const scoresMap = new Map(); // "judge_id:candidate_id:criterion_id" -> score
+        scores.forEach(s => {
+            scoresMap.set(`${s.judge_id}:${s.candidate_id}:${s.criterion_id}`, s.score);
+        });
+        
+        const finalResultsSql = `WITH JudgeSegmentScores AS (SELECT sc.judge_id, sc.candidate_id, s.id as segment_id, SUM(sc.score * (cr.max_score / 100.0)) as total_raw_segment_score FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id JOIN segments s ON cr.segment_id = s.id WHERE sc.contest_id = ? GROUP BY sc.judge_id, sc.candidate_id, s.id), AvgSegmentScores AS (SELECT candidate_id, segment_id, AVG(total_raw_segment_score) as avg_segment_score FROM JudgeSegmentScores GROUP BY candidate_id, segment_id) SELECT c.id as candidate_id, SUM(ags.avg_segment_score * (s.percentage / 100.0)) as final_score FROM candidates c LEFT JOIN AvgSegmentScores ags ON c.id = ags.candidate_id LEFT JOIN segments s ON ags.segment_id = s.id WHERE c.contest_id = ? GROUP BY c.id ORDER BY final_score DESC;`
+        const finalScoresRaw = await dbAll(finalResultsSql, [contest_id, contest_id]);
+        
+        const finalScoresMap = new Map();
+        finalScoresRaw.forEach(fs => {
+            finalScoresMap.set(fs.candidate_id, fs.final_score ? fs.final_score.toFixed(2) : '0.00');
+        });
+
+
+        const report = {
+            contestName: contestRows[0].name,
+            generatedDate: new Date().toLocaleString(),
+            segments,
+            criteria,
+            candidates,
+            judges,
+            scoresMap: Object.fromEntries(scoresMap), // Convert map to object for JSON
+            finalScores: Object.fromEntries(finalScoresMap)
+        };
+
+        res.json(report);
+
+    } catch (error) {
+        console.error("Error generating full tabulation report:", error);
+        res.status(500).json({ message: "Failed to generate report." });
+    }
+});
 
 // --- SERVER START & SHUTDOWN ---
 server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

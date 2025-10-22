@@ -8,7 +8,8 @@
     "init": "node server/database-init.js",
     "register": "node server/create-superadmin.js",
     "pm2": "pm2 start tabulation-system",
-    "pm2-stop": "pm2 stop tabulation-system"
+    "pm2-stop": "pm2 stop tabulation-system",
+    "pm2-restart": "pm2 restart tabulation-system"
   },
   "keywords": [],
   "author": "",
@@ -18,10 +19,13 @@
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "html2canvas": "^1.4.1",
     "jsonwebtoken": "^9.0.2",
+    "jspdf": "^3.0.3",
     "multer": "^2.0.2",
     "socket.io": "^4.8.1",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

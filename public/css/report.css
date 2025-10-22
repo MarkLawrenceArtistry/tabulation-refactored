@@ -1,0 +1,149 @@
+/* On-screen styles */
+.report-controls .controls-container {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+#report-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+#report-header h2 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+#report-header p {
+    margin: 0.2rem 0;
+    color: var(--text-light-color);
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+}
+
+.report-table th, .report-table td {
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.report-table th {
+    background-color: rgba(0,0,0,0.3);
+}
+
+.candidate-header {
+    background-color: var(--primary-color) !important;
+    color: var(--dark-color);
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-align: left !important;
+}
+
+.segment-header {
+    background-color: rgba(201, 163, 116, 0.2) !important;
+    font-weight: bold;
+    text-align: left !important;
+}
+
+.criterion-name {
+    text-align: left !important;
+    padding-left: 2rem !important;
+}
+
+.final-score-row td {
+    font-weight: bold;
+    background-color: rgba(0,0,0,0.2);
+}
+
+/* =================================================== */
+/* PDF EXPORT MODE - Activated during html2canvas render */
+/* =================================================== */
+.pdf-export-mode #report-container {
+    background-color: #ffffff !important; /* White background for printing */
+    color: #000000 !important; /* Black text */
+    padding: 20px; 
+}
+
+.pdf-export-mode .report-table th,
+.pdf-export-mode .report-table td {
+    color: #000000 !important;
+    border: 1px solid #cccccc !important; /* Light gray border */
+}
+
+.pdf-export-mode .segment-header {
+    background-color: #e0e0e0 !important; /* Light gray for segment headers */
+    color: #000000 !important;
+}
+
+.pdf-export-mode #report-header h2,
+.pdf-export-mode #report-header p {
+    color: #000000 !important;
+}
+
+/* Print-specific styles */
+/* Print-specific styles */
+@media print {
+    @page {
+        size: landscape;
+    }
+
+    body {
+        background-color: #fff;
+        color: #000;
+        margin: 1cm; /* Add some margin for better printing */
+    }
+
+    /* 1. Explicitly hide the UI elements we don't want */
+    #admin-sidebar-container, .report-controls, .admin-main-content > h1 {
+        display: none !important;
+    }
+
+    /* 2. Reset the layout containers to take up the full page */
+    .admin-layout {
+        display: block; /* Override the flex layout */
+        max-height: none;
+    }
+
+    .admin-main-content {
+        padding: 0;
+        overflow: visible;
+        width: 100%;
+    }
+    
+    #report-container {
+        /* The content is now visible by default, no need for complex rules */
+    }
+
+    .report-table {
+        font-size: 10pt; /* Smaller font for printing */
+        page-break-inside: auto;
+    }
+
+    .report-table tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+
+    .report-table th, .report-table td {
+        border: 1px solid #ccc;
+    }
+
+    .candidate-header, .segment-header, .final-score-row {
+        -webkit-print-color-adjust: exact !important; /* Ensures background color prints */
+        color-adjust: exact !important;
+    }
+    
+    .candidate-header {
+        background-color: #e0e0e0 !important;
+        color: #000 !important;
+    }
+    .segment-header {
+        background-color: #f0f0f0 !important;
+    }
+}

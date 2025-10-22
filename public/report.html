@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabulation Report</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-layout.css">
+    <link rel="stylesheet" href="/css/report.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- The sidebar will be injected here -->
+        <aside id="admin-sidebar-container"></aside>
+
+        <!-- Main content area -->
+        <main class="admin-main-content">
+            <h1>Full Tabulation Report</h1>
+            
+            <div class="card report-controls">
+                <h2>Generate Report</h2>
+                <div class="controls-container">
+                    <select id="contest-select">
+                        <option value="">-- Select a Contest --</option>
+                    </select>
+                    <!-- NEW: TOP N FILTER -->
+                    <select id="top-n-select">
+                        <option value="0">Show All Candidates</option>
+                        <option value="3">Top 3</option>
+                        <option value="5">Top 5</option>
+                        <option value="10">Top 10</option>
+                    </select>
+                    <button id="generate-report-btn">Generate</button>
+                </div>
+                <!-- NEW: EXPORT BUTTONS CONTAINER -->
+                <div id="export-controls" class="controls-container hidden" style="margin-top: 1rem;">
+                    <button id="print-report-btn">Print</button>
+                    <button id="export-pdf-btn">Export as PDF</button>
+                    <button id="export-xlsx-btn">Export as XLSX</button>
+                </div>
+            </div>
+            <!-- The generated report will be injected here -->
+            <div id="report-container">
+                <!-- This will be populated by JavaScript -->
+            </div>
+        </main>
+    </div>
+    
+    <script src="/js/admin-sidebar.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/node_modules/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="/node_modules/jspdf/dist/jspdf.umd.min.js"></script>
+    <script src="/node_modules/html2canvas/dist/html2canvas.min.js"></script>
+    <script src="/js/report.js"></script>
+</body>
+</body>
+</html>
