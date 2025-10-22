@@ -69,8 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderPodium(contestName) {
-        const results = fullResults[contestName];
-        if (!results || results.length === 0) return;
+        const results = fullResults[contestName] || [];
 
         const sorted = [...results].sort((a, b) => parseFloat(b.total_score) - parseFloat(a.total_score));
         const top3 = [sorted[0], sorted[1], sorted[2]];

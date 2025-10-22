@@ -1,4 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    document.getElementById('username-display').textContent = user.username;
+    document.getElementById('logout-button').addEventListener('click', () => {
+        localStorage.clear();
+        window.location.href = '/login.html';
+    });
+    
     const urlParams = new URLSearchParams(window.location.search);
     const contestId = urlParams.get('contest');
     let isLoading = false;

@@ -35,3 +35,15 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         errorMessage.textContent = error.message;
     }
 });
+
+const togglePassword = document.getElementById('toggle-password');
+const passwordInput = document.getElementById('password');
+
+togglePassword.addEventListener('click', function () {
+    // Toggle the type attribute
+    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    passwordInput.setAttribute('type', type);
+    
+    // Toggle the icon
+    this.textContent = type === 'password' ? 'Show' : 'Hide';
+});

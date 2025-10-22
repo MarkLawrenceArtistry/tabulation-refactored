@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const currentSegment = segmentsForContest.find(s => s.id == segmentId);
         
         document.getElementById('segment-name-header').textContent = currentSegment.name;
+        document.getElementById('segment-percentage-display').textContent = `(${currentSegment.percentage}% Overall)`;
         populateCandidateCards(criteria, candidates);
         setupFormSubmission(contestId);
 

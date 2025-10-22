@@ -218,3 +218,14 @@ button:hover {
     min-height: 1.2em;
     text-align: left;
 }
+
+.toggle-password-icon {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    user-select: none; /* Prevents text selection on double click */
+    font-size: .9rem;
+    color: white;
+}
