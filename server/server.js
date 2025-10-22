@@ -42,26 +42,79 @@ const authorizeRoles = (...allowedRoles) => { return (req, res, next) => { if (!
 
 // --- TABULATION FUNCTION ---
 const calculateAndEmitResults = () => {
-    // This SQL query is correct, no changes needed here.
-    const sql = `WITH JudgeSegmentScores AS (SELECT sc.judge_id, sc.candidate_id, s.id as segment_id, s.contest_id, SUM(sc.score * (cr.max_score / 100.0)) as total_raw_segment_score FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id JOIN segments s ON cr.segment_id = s.id GROUP BY sc.judge_id, sc.candidate_id, s.id), AvgSegmentScores AS (SELECT candidate_id, segment_id, contest_id, AVG(total_raw_segment_score) as avg_segment_score FROM JudgeSegmentScores GROUP BY candidate_id, segment_id), FinalScores AS (SELECT c.id as candidate_id, SUM(ags.avg_segment_score * (s.percentage / 100.0)) as total_score FROM candidates c LEFT JOIN AvgSegmentScores ags ON c.id = ags.candidate_id LEFT JOIN segments s ON ags.segment_id = s.id GROUP BY c.id) SELECT cand.id, cand.name as candidate_name, cand.candidate_number, cand.image_url, cont.id as contest_id, cont.name as contest_name, fs.total_score FROM candidates cand JOIN contests cont ON cand.contest_id = cont.id LEFT JOIN FinalScores fs ON cand.id = fs.candidate_id ORDER BY cont.id, fs.total_score DESC;`;
+    const sql = `
+        WITH JudgeRawSegmentScores AS (
+            -- Step 1: For each judge, SUM the weighted criteria scores for each candidate in a segment.
+            SELECT 
+                sc.judge_id,
+                sc.candidate_id,
+                s.id as segment_id,
+                SUM(sc.score * (cr.max_score / 100.0)) as total_segment_score
+            FROM scores sc
+            JOIN criteria cr ON sc.criterion_id = cr.id
+            JOIN segments s ON cr.segment_id = s.id
+            WHERE s.type = 'judge'
+            GROUP BY sc.judge_id, sc.candidate_id, s.id
+        ),
+        JudgeAverageSegmentScores AS (
+            -- Step 2: Average the segment totals from all judges for each candidate.
+            SELECT
+                candidate_id,
+                segment_id,
+                AVG(total_segment_score) as final_segment_score
+            FROM JudgeRawSegmentScores
+            GROUP BY candidate_id, segment_id
+        ),
+        AdminSegmentScores AS (
+            -- Step 3: Get the scores directly entered by admins.
+            SELECT
+                candidate_id,
+                segment_id,
+                score as final_segment_score
+            FROM admin_scores
+        ),
+        CombinedScores AS (
+            -- Step 4: Combine the judge averages and the admin scores into one table.
+            SELECT candidate_id, segment_id, final_segment_score FROM JudgeAverageSegmentScores
+            UNION ALL
+            SELECT candidate_id, segment_id, final_segment_score FROM AdminSegmentScores
+        ),
+        FinalScores AS (
+            -- Step 5: Apply the overall segment percentage to get the final score for each candidate.
+            SELECT 
+                c.id as candidate_id,
+                SUM(cs.final_segment_score * (s.percentage / 100.0)) as total_score
+            FROM candidates c
+            LEFT JOIN CombinedScores cs ON c.id = cs.candidate_id
+            LEFT JOIN segments s ON cs.segment_id = s.id
+            GROUP BY c.id
+        )
+        -- Final Selection
+        SELECT 
+            cand.id, 
+            cand.name as candidate_name, 
+            cand.candidate_number, 
+            cand.image_url, 
+            cont.id as contest_id, 
+            cont.name as contest_name, 
+            fs.total_score 
+        FROM candidates cand 
+        JOIN contests cont ON cand.contest_id = cont.id 
+        LEFT JOIN FinalScores fs ON cand.id = fs.candidate_id 
+        ORDER BY cont.id, fs.total_score DESC;
+    `;
     
     db.all(sql, [], (err, results) => {
         if (err) {
             console.error("Error calculating results:", err.message);
             return;
         }
-        
         const groupedResults = results.reduce((acc, row) => {
             const { contest_name } = row;
-            // If the contest isn't a key in our accumulator object yet, create it with an empty array.
-            if (!acc[contest_name]) { 
-                acc[contest_name] = []; 
-            }
-            // Push the current candidate's result into the correct contest's array.
+            if (!acc[contest_name]) { acc[contest_name] = []; }
             acc[contest_name].push(row);
             return acc;
         }, {});
-
         io.emit('update_results', groupedResults); 
     });
 };
@@ -227,7 +280,7 @@ app.post('/api/candidates', authenticateToken, authorizeRoles('admin', 'superadm
 });
 app.delete('/api/candidates/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM candidates WHERE id = ?', [req.params.id], () => res.sendStatus(204)); });
 app.get('/api/contests/:contestId/segments', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.all("SELECT * FROM segments WHERE contest_id = ?", [req.params.contestId], (err, rows) => res.json(rows)); });
-app.post('/api/segments', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { const { name, percentage, contest_id } = req.body; db.run('INSERT INTO segments (name, percentage, contest_id) VALUES (?, ?, ?)', [name, percentage, contest_id], function(err) { res.status(201).json({ id: this.lastID }); }); });
+app.post('/api/segments', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { const { name, percentage, contest_id, type } = req.body; db.run('INSERT INTO segments (name, percentage, contest_id, type) VALUES (?, ?, ?, ?)', [name, percentage, contest_id, type || 'judge'], function(err) { if(err) return res.status(500).json({message: "DB error"}); res.status(201).json({ id: this.lastID }); }); });
 app.delete('/api/segments/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM segments WHERE id = ?', [req.params.id], () => res.sendStatus(204)); });
 app.get('/api/segments/:segmentId/criteria', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.all("SELECT * FROM criteria WHERE segment_id = ?", [req.params.segmentId], (err, rows) => res.json(rows)); });
 app.post('/api/criteria', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { const { name, max_score, segment_id } = req.body; db.run('INSERT INTO criteria (name, max_score, segment_id) VALUES (?, ?, ?)', [name, max_score, segment_id], function(err) { res.status(201).json({ id: this.lastID }); }); });
@@ -298,7 +351,7 @@ app.get('/api/judging/contests/:contestId/segments', authenticateToken, authoriz
             JOIN criteria cr ON sc.criterion_id = cr.id
             WHERE sc.judge_id = ?
         ) as judged_segments ON s.id = judged_segments.segment_id
-        WHERE s.contest_id = ?
+        WHERE s.contest_id = ? AND s.type = 'judge'
     `;
     db.all(sql, [req.user.id, req.params.contestId], (err, rows) => {
         if (err) {
@@ -594,8 +647,43 @@ app.get('/api/reports/full-tabulation', authenticateToken, authorizeRoles('admin
             scoresMap.set(`${s.judge_id}:${s.candidate_id}:${s.criterion_id}`, s.score);
         });
         
-        const finalResultsSql = `WITH JudgeSegmentScores AS (SELECT sc.judge_id, sc.candidate_id, s.id as segment_id, SUM(sc.score * (cr.max_score / 100.0)) as total_raw_segment_score FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id JOIN segments s ON cr.segment_id = s.id WHERE sc.contest_id = ? GROUP BY sc.judge_id, sc.candidate_id, s.id), AvgSegmentScores AS (SELECT candidate_id, segment_id, AVG(total_raw_segment_score) as avg_segment_score FROM JudgeSegmentScores GROUP BY candidate_id, segment_id) SELECT c.id as candidate_id, SUM(ags.avg_segment_score * (s.percentage / 100.0)) as final_score FROM candidates c LEFT JOIN AvgSegmentScores ags ON c.id = ags.candidate_id LEFT JOIN segments s ON ags.segment_id = s.id WHERE c.contest_id = ? GROUP BY c.id ORDER BY final_score DESC;`
-        const finalScoresRaw = await dbAll(finalResultsSql, [contest_id, contest_id]);
+        const finalResultsSql = `
+            WITH JudgeRawSegmentScores AS (
+                SELECT 
+                    sc.judge_id, sc.candidate_id, s.id as segment_id,
+                    SUM(sc.score * (cr.max_score / 100.0)) as total_segment_score
+                FROM scores sc
+                JOIN criteria cr ON sc.criterion_id = cr.id
+                JOIN segments s ON cr.segment_id = s.id
+                WHERE s.type = 'judge' AND s.contest_id = ?
+                GROUP BY sc.judge_id, sc.candidate_id, s.id
+            ),
+            JudgeAverageSegmentScores AS (
+                SELECT candidate_id, segment_id, AVG(total_segment_score) as final_segment_score
+                FROM JudgeRawSegmentScores GROUP BY candidate_id, segment_id
+            ),
+            AdminSegmentScores AS (
+                SELECT candidate_id, segment_id, score as final_segment_score
+                FROM admin_scores WHERE contest_id = ?
+            ),
+            CombinedScores AS (
+                SELECT candidate_id, segment_id, final_segment_score FROM JudgeAverageSegmentScores
+                UNION ALL
+                SELECT candidate_id, segment_id, final_segment_score FROM AdminSegmentScores
+            ),
+            FinalScores AS (
+                SELECT 
+                    c.id as candidate_id,
+                    SUM(cs.final_segment_score * (s.percentage / 100.0)) as total_score
+                FROM candidates c
+                LEFT JOIN CombinedScores cs ON c.id = cs.candidate_id
+                LEFT JOIN segments s ON cs.segment_id = s.id
+                WHERE c.contest_id = ?
+                GROUP BY c.id
+            )
+            SELECT candidate_id, total_score as final_score FROM FinalScores ORDER BY final_score DESC
+        `;
+        const finalScoresRaw = await dbAll(finalResultsSql, [contest_id, contest_id, contest_id]);
         
         const finalScoresMap = new Map();
         finalScoresRaw.forEach(fs => {
@@ -716,6 +804,67 @@ app.post('/api/admin/restore', authenticateToken, authorizeRoles('admin', 'super
             setTimeout(() => {
                 process.exit(1); 
             }, 1000); // Wait 1 second to ensure the response is sent.
+        });
+    });
+});
+
+
+// --- ADMIN-SCORED SEGMENT ENDPOINTS ---
+app.get('/api/admin/special-scores', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { contest_id } = req.query;
+    if (!contest_id) return res.status(400).json({ message: "Contest ID is required" });
+
+    const sql = `
+        SELECT 
+            s.id as segment_id, 
+            s.name as segment_name,
+            c.id as candidate_id,
+            c.name as candidate_name,
+            c.candidate_number,
+            asc.score
+        FROM segments s
+        CROSS JOIN candidates c 
+        LEFT JOIN admin_scores asc ON asc.segment_id = s.id AND asc.candidate_id = c.id
+        WHERE s.contest_id = ? AND c.contest_id = ? AND s.type = 'admin'
+        ORDER BY s.id, c.candidate_number
+    `;
+    db.all(sql, [contest_id, contest_id], (err, rows) => {
+        if(err) return res.status(500).json({ message: "DB error fetching scores." });
+        res.json(rows);
+    });
+});
+
+app.post('/api/admin/special-scores', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { scores, contest_id } = req.body;
+    if (!scores || !contest_id || !Array.isArray(scores)) {
+        return res.status(400).json({ message: "Invalid payload." });
+    }
+
+    const sql = `INSERT OR REPLACE INTO admin_scores (candidate_id, segment_id, score, contest_id) VALUES (?, ?, ?, ?)`;
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+        const stmt = db.prepare(sql);
+        scores.forEach(s => {
+            const scoreValue = parseFloat(s.score);
+            if (!isNaN(scoreValue)) {
+                // THIS IS THE FIX: The parameter order now matches the SQL statement
+                stmt.run(s.candidate_id, s.segment_id, scoreValue, contest_id);
+            }
+        });
+        stmt.finalize(err => {
+            if (err) {
+                db.run("ROLLBACK");
+                console.error("Error saving admin scores:", err.message);
+                return res.status(500).json({ message: "Failed to save scores." });
+            }
+            db.run("COMMIT", (commitErr) => {
+                if(commitErr) {
+                    console.error("Error committing admin scores:", commitErr.message);
+                    return res.status(500).json({ message: "Failed to commit scores." });
+                }
+                res.status(201).json({ message: "Scores saved successfully." });
+                calculateAndEmitResults();
+            });
         });
     });
 });

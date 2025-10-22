@@ -76,6 +76,10 @@
                                     <form id="add-segment-form" class="vertical-form">
                                         <input type="text" name="name" placeholder="Segment Name" required>
                                         <input type="number" name="percentage" placeholder="Percentage (%)" required>
+                                        <select name="type" required>
+                                            <option value="judge" selected>Judge-Voted (Needs Criteria)</option>
+                                            <option value="admin">Admin-Scored (No Criteria)</option>
+                                        </select>
                                         <button type="submit">Add Segment</button>
                                     </form>
                                     <div class="segment-header">
