@@ -21,15 +21,7 @@ body {
     margin: 0;
 }
 
-header {
-    background-color: var(--form-bg-color);
-    backdrop-filter: blur(10px);
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border-color);
-}
+
 
 .container {
     padding: 2rem;
