@@ -338,7 +338,7 @@ createGetByIdRoute('segments');
 createGetByIdRoute('criteria');
 
 // --- JUDGING FLOW (WITH NEW ROUTE) ---
-app.get('/api/judging/contests', authenticateToken, authorizeRoles('judge'), (req, res) => { const sql = `SELECT DISTINCT c.* FROM contests c JOIN segments s ON c.id = s.contest_id WHERE s.id NOT IN (SELECT cr.segment_id FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id WHERE sc.judge_id = ?)`; db.all(sql, [req.user.id], (err, rows) => { if (err) return res.status(500).json({ message: "DB error" }); res.json(rows); }); });
+app.get('/api/judging/contests', authenticateToken, authorizeRoles('judge'), (req, res) => {const sql = `SELECT DISTINCT c.* FROM contests c JOIN segments s ON c.id = s.contest_id WHERE s.type = 'judge' AND s.id NOT IN (SELECT cr.segment_id FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id WHERE sc.judge_id = ?)`; db.all(sql, [req.user.id], (err, rows) => { if (err) return res.status(500).json({ message: "DB error" }); res.json(rows); }); });
 app.get('/api/judging/contests/:contestId/segments', authenticateToken, authorizeRoles('judge'), (req, res) => {
     const sql = `
         SELECT 
