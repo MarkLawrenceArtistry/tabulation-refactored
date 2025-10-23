@@ -1,6 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const socket = io();
-
     // Elements
     const connectionCountEl = document.getElementById('connection-count');
     const activeUsersListEl = document.getElementById('active-users-list');

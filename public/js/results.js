@@ -1,6 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const socket = io();
-
     const tableBody = document.getElementById('results-table-body');
     const contestSelect = document.getElementById('contest-leaderboard-select');
     const leaderboardTitle = document.getElementById('leaderboard-title');

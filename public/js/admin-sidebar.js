@@ -22,7 +22,7 @@
         ];
 
         const linksHtml = navLinks.map(link => `
-            <a href="${link.href}" class="${currentPage.endsWith(link.href) ? 'active' : ''}">
+            <a href="${link.href}" style="text-align: left;" class="${currentPage.endsWith(link.href) ? 'active' : ''}">
                 ${link.text}
             </a>
         `).join('');

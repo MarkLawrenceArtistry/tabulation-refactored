@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const contestSelect = document.getElementById('contest-select');
     const gridContainer = document.getElementById('progress-grid-container');
-    const socket = io();
     let isLoading = false;
 
    socket.on('connect', () => console.log('✅ Connected to WebSocket server'));
