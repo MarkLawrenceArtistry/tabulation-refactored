@@ -21,15 +21,7 @@ body {
     margin: 0;
 }
 
-header {
-    background-color: var(--form-bg-color);
-    backdrop-filter: blur(10px);
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border-color);
-}
+
 
 .container {
     padding: 2rem;
@@ -172,7 +164,7 @@ header, .container {
     left: -15%;
     background-image: url('../Assets/mr-and-ms-logo.png');
     background-position: center;
-    background-size: 240%; /* Adjusted size for better visibility */
+    background-size: 220%; /* Adjusted size for better visibility */
     animation: fadeInLeft 1s ease-out 0.2s forwards; /* Added delay */
 }
 
@@ -181,7 +173,7 @@ header, .container {
     right: -13%;
     background-image: url('../Assets/king-and-queen-logo.png');
     background-position: center;
-    background-size: 240%; /* Adjusted size for better visibility */
+    background-size: 220%; /* Adjusted size for better visibility */
     animation: fadeInRight 1s ease-out 0.2s forwards; /* Added delay */
 }
 

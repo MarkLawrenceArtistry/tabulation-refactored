@@ -7,18 +7,26 @@
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+
+    <!-- This is the container for the animated background -->
+    <div class="background-container"></div>
+
     <header>
+        <!-- The nav-button is now styled to be a clear call-to-action -->
         <a href="/judge-dashboard.html" class="nav-button">&larr; Back to Contests</a>
         <h1 id="contest-name-header">Loading Contest...</h1>
+        <!-- User info is kept for context -->
         <div class="user-info">
-            Judge: <span id="username-display"></span>
+            <span id="username-display"></span>
             <button id="logout-button">Logout</button>
         </div>
     </header>
+
     <main class="container">
-        <h2>Segments to Judge</h2>
+        <!-- A prominent, clear title for the page -->
+        <h2 class="page-title">Select a Segment to Judge</h2>
         <div id="segments-container" class="segments-grid">
-            <!-- Segment cards will be inserted here -->
+            <!-- Your judge-segments.js will correctly place the segment cards here -->
         </div>
     </main>
     

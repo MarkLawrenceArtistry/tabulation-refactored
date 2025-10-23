@@ -29,6 +29,117 @@ header {
     border-bottom: 1px solid var(--border-color);
 }
 
+/* This targets the <header> on all pages */
+header {
+    background-color: var(--form-bg-color);
+    backdrop-filter: blur(10px);
+
+    /* UPDATED: Increased vertical and horizontal padding for more space */
+    padding: 1.5rem 3rem; 
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* This styles the <h1> title in ANY header */
+header h1 {
+    font-size: 1.6rem; /* Slightly adjusted font size */
+    font-weight: 600;
+    color: var(--text-dark-color);
+    margin: 0;
+    text-align: center;
+    flex: 0 1 auto; 
+}
+
+/* This group selector styles BOTH types of "Back" buttons */
+header .nav-button,
+header #back-to-dashboard {
+    background-color: var(--primary-color);
+    color: var(--dark-color);
+
+    /* UPDATED: Increased padding and border-radius for the new look */
+    padding: 0.8rem 1.6rem;
+    border-radius: 12px;
+
+    text-decoration: none;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap; 
+}
+
+header .nav-button:hover,
+header #back-to-dashboard:hover {
+    background-color: var(--primary-darker-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+/* This targets the spacer and user-info to ensure balance */
+header .header-spacer,
+header .user-info {
+    /* UPDATED: Increased basis to account for the larger button */
+    flex-basis: 180px; 
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* This specifically styles the grey back button on the segments page */
+header .nav-button {
+    background-color: var(--primary-color);
+    color: var(--background-color);
+}
+header .nav-button:hover {
+    background-color: var(--primary-color);
+}
+
+header .user-info {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* Ensures alignment to the far right */
+    
+    /* UPDATED: Reduced the space between the text and the button */
+    gap: 0.75rem; 
+    
+    /* This makes the container take up the same space as the back button for balance */
+    flex-basis: 180px; 
+    flex-shrink: 0;
+}
+
+/* UPDATED: Styles the "Judge: judge1" text */
+header .user-info span {
+    color: var(--text-light-color);
+    font-size: 0.9rem;
+}
+
+/* This specifically styles the logout button to match the screenshot */
+header #logout-button {
+    background-color: var(--primary-color);
+    color: var(--dark-color);
+    padding: 0.6rem 1.2rem;
+    
+    /* UPDATED: Increased rounding to match the image */
+    border-radius: 10px; 
+    
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+header #logout-button:hover {
+    background-color: var(--primary-darker-color);
+    transform: translateY(-2px);
+}
+
+/* This is the invisible spacer for the judging-sheet header */
+header .header-spacer {
+    flex-basis: 180px; 
+}
+
 .container {
     padding: 2rem;
 }
@@ -196,22 +307,135 @@ li {
 .welcome-banner h2, .welcome-banner p {
     color: var(--dark-color);
 }
+/* --- *** UPDATED: SEGMENT PAGE STYLES *** --- */
+
+/* Use a responsive grid that looks good on all screen sizes */
 .segments-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2rem;
 }
+
+/* This is the new, user-friendly segment card design.
+   Your JS will create a link (<a>) that WRAPS this card. */
 .segment-card {
+    display: block; /* Makes the whole area clickable if it's a link */
+    text-decoration: none; /* Removes underline from link */
     background-color: var(--form-bg-color);
     border: 1px solid var(--border-color);
-    border-radius: 16px; /* UPDATED */
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    backdrop-filter: blur(10px); /* UPDATED */
+    border-radius: 16px;
+    padding: 2rem;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    overflow: hidden;
 }
-.segment-card h3 { margin-top: 0; }
-.segment-card p { flex-grow: 1; }
+
+/* A powerful hover effect to guide the user */
+.segment-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Adds a decorative icon to the corner of each card */
+.segment-card::before {
+    content: '📝'; /* A clipboard/judging icon */
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 4rem;
+    opacity: 0.1;
+    transform: rotate(-15deg);
+}
+
+.segment-card h3 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    color: var(--primary-color); /* Gold title for emphasis */
+}
+
+.segment-card p {
+    color: var(--text-light-color);
+    line-height: 1.6;
+}
+
+/* Add this new page title style */
+.page-title {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 1rem;
+}
+
+/* 1. This ensures your main content sits on top of the background */
+header, .container {
+    position: relative;
+    z-index: 2;
+}
+
+/* 2. This creates the main container for the background images */
+.background-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* 3. Styling for the two background images */
+.background-container::before,
+.background-container::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50%;
+    height: 100%;
+    background-repeat: no-repeat;
+}
+
+.background-container::before {
+    opacity: 0; 
+    left: -15%;
+    background-image: url('../Assets/mr-and-ms-logo.png');
+    background-position: center;
+    background-size: 220%;
+    animation: fadeInLeft 1s ease-out 0.2s forwards;
+}
+
+.background-container::after {
+    opacity: 0; 
+    right: -13%;
+    background-image: url('../Assets/king-and-queen-logo.png');
+    background-position: center;
+    background-size: 220%;
+    animation: fadeInRight 1s ease-out 0.2s forwards;
+}
+
+/* 4. Animation keyframes */
+@keyframes fadeInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px) translateY(-50%);
+    }
+    to {
+        opacity: 0.10;
+        transform: translateX(0) translateY(-50%);
+    }
+}
+
+@keyframes fadeInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px) translateY(-50%);
+    }
+    to {
+        opacity: 0.10;
+        transform: translateX(0) translateY(-50%);
+    }
+}
 
 /* Judging Sheet Styles */
 .judging-table-container { overflow-x: auto; width: 100%; }
@@ -492,24 +716,7 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
     display: block;
 }
 
-/* <<<<< ADMIN DASHBOARD SEGMENT PERCENTAGE CALCULATOR >>>>> */
-.segment-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-  z-index: 900;
-}
 
-.segment-percentage-box, .criteria-percentage-box {
-  background-color: var(--primary-color); /* UPDATED */
-  color: var(--dark-color); /* UPDATED */
-  padding: 8px 14px;
-  border-radius: 20px;
-  display: inline-block;
-  margin-bottom: 10px;
-  font-weight: 600;
-}
 
 input[type="file"] {
     width: 100%;
