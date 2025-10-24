@@ -282,6 +282,27 @@ app.delete('/api/candidates/:id', authenticateToken, authorizeRoles('admin', 'su
 app.get('/api/contests/:contestId/segments', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.all("SELECT * FROM segments WHERE contest_id = ?", [req.params.contestId], (err, rows) => res.json(rows)); });
 app.post('/api/segments', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { const { name, percentage, contest_id, type } = req.body; db.run('INSERT INTO segments (name, percentage, contest_id, type) VALUES (?, ?, ?, ?)', [name, percentage, contest_id, type || 'judge'], function(err) { if(err) return res.status(500).json({message: "DB error"}); res.status(201).json({ id: this.lastID }); }); });
 app.delete('/api/segments/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM segments WHERE id = ?', [req.params.id], () => res.sendStatus(204)); });
+app.put('/api/segments/:id/status', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { status } = req.body;
+    if (!status || !['open', 'closed'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status provided. Must be 'open' or 'closed'." });
+    }
+
+    db.run('UPDATE segments SET status = ? WHERE id = ?', [status, req.params.id], function(err) {
+        if (err) {
+            console.error("Error updating segment status:", err.message);
+            return res.status(500).json({ message: 'DB Error updating segment status.' });
+        }
+        if (this.changes === 0) {
+            return res.status(404).json({ message: 'Segment not found.' });
+        }
+        
+        // --- FIX: Notify all clients that a segment status has changed ---
+        io.emit('segment_status_changed'); 
+        
+        res.json({ message: `Segment status updated to ${status}.` });
+    });
+});
 app.get('/api/segments/:segmentId/criteria', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.all("SELECT * FROM criteria WHERE segment_id = ?", [req.params.segmentId], (err, rows) => res.json(rows)); });
 app.post('/api/criteria', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { const { name, max_score, segment_id } = req.body; db.run('INSERT INTO criteria (name, max_score, segment_id) VALUES (?, ?, ?)', [name, max_score, segment_id], function(err) { res.status(201).json({ id: this.lastID }); }); });
 app.delete('/api/criteria/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM criteria WHERE id = ?', [req.params.id], () => res.sendStatus(204)); });
@@ -351,7 +372,7 @@ app.get('/api/judging/contests/:contestId/segments', authenticateToken, authoriz
             JOIN criteria cr ON sc.criterion_id = cr.id
             WHERE sc.judge_id = ?
         ) as judged_segments ON s.id = judged_segments.segment_id
-        WHERE s.contest_id = ? AND s.type = 'judge'
+        WHERE s.contest_id = ? AND s.type = 'judge' AND s.status = 'open'
     `;
     db.all(sql, [req.user.id, req.params.contestId], (err, rows) => {
         if (err) {
@@ -388,53 +409,59 @@ app.get('/api/judging/segments/:segmentId/criteria', authenticateToken, authoriz
     });
 });
 app.post('/api/judging/scores', authenticateToken, authorizeRoles('judge'), (req, res) => {
-    const { scores, contest_id } = req.body;
-    if (!scores || !contest_id || !Array.isArray(scores) || scores.length === 0) {
-        return res.status(400).json({ message: "Missing or invalid scores payload or contest ID." });
+    const { scores } = req.body; // We no longer need contest_id from the client
+    if (!scores || !Array.isArray(scores) || scores.length === 0) {
+        return res.status(400).json({ message: "Missing or invalid scores payload." });
     }
 
     const firstCriterionId = scores[0].criterion_id;
+    const firstCandidateId = scores[0].candidate_id;
 
-    // Step 1: Find the segment_id from the first criterion to identify which segment is being judged.
-    db.get('SELECT segment_id FROM criteria WHERE id = ?', [firstCriterionId], (err, criterion) => {
-        if (err) return res.status(500).json({ message: "DB Error checking criterion." });
-        if (!criterion) return res.status(404).json({ message: "Associated criterion not found." });
+    // --- FIX: We now derive the contest_id on the server for security and reliability ---
+    db.get('SELECT contest_id FROM candidates WHERE id = ?', [firstCandidateId], (err, candidate) => {
+        if (err || !candidate) {
+            return res.status(500).json({ message: "DB Error: Could not find the associated contest for the candidate." });
+        }
+        const contest_id = candidate.contest_id; // This is the correct, verified contest ID
 
-        const segmentId = criterion.segment_id;
+        db.get('SELECT segment_id FROM criteria WHERE id = ?', [firstCriterionId], (err, criterion) => {
+            if (err) return res.status(500).json({ message: "DB Error checking criterion." });
+            if (!criterion) return res.status(404).json({ message: "Associated criterion not found." });
 
-        // Step 2: Check if this judge has ALREADY scored any criterion within this segment.
-        const checkSql = `
-            SELECT 1 FROM scores s
-            JOIN criteria c ON s.criterion_id = c.id
-            WHERE s.judge_id = ? AND c.segment_id = ?
-            LIMIT 1
-        `;
+            const segmentId = criterion.segment_id;
 
-        db.get(checkSql, [req.user.id, segmentId], (err, existingScore) => {
-            if (err) return res.status(500).json({ message: "DB Error checking for existing scores." });
+            const checkSql = `
+                SELECT 1 FROM scores s
+                JOIN criteria c ON s.criterion_id = c.id
+                WHERE s.judge_id = ? AND c.segment_id = ?
+                LIMIT 1
+            `;
 
-            // Step 3: If a score exists, block the submission and inform the user.
-            if (existingScore) {
-                return res.status(409).json({ message: "You have already submitted scores for this segment." });
-            }
+            db.get(checkSql, [req.user.id, segmentId], (err, existingScore) => {
+                if (err) return res.status(500).json({ message: "DB Error checking for existing scores." });
 
-            // Step 4: If no scores exist, proceed with the original insertion logic.
-            const insertSql = `INSERT INTO scores (judge_id, candidate_id, criterion_id, score, contest_id) VALUES (?, ?, ?, ?, ?)`;
-            db.serialize(() => {
-                db.run("BEGIN TRANSACTION");
-                const stmt = db.prepare(insertSql);
-                scores.forEach(s => {
-                    stmt.run(req.user.id, s.candidate_id, s.criterion_id, s.score, contest_id);
-                });
-                stmt.finalize(err => {
-                    if (err) {
-                        db.run("ROLLBACK");
-                        return res.status(500).json({ message: "Failed to save scores due to a database error." });
-                    }
-                    db.run("COMMIT", () => {
-                        res.status(201).json({ message: "Scores submitted successfully." });
-                        calculateAndEmitResults();
-                        emitKpiUpdate(); // This is important to update live results
+                if (existingScore) {
+                    return res.status(409).json({ message: "You have already submitted scores for this segment." });
+                }
+
+                const insertSql = `INSERT INTO scores (judge_id, candidate_id, criterion_id, score, contest_id) VALUES (?, ?, ?, ?, ?)`;
+                db.serialize(() => {
+                    db.run("BEGIN TRANSACTION");
+                    const stmt = db.prepare(insertSql);
+                    scores.forEach(s => {
+                        // Use the contest_id we found on the server
+                        stmt.run(req.user.id, s.candidate_id, s.criterion_id, s.score, contest_id);
+                    });
+                    stmt.finalize(err => {
+                        if (err) {
+                            db.run("ROLLBACK");
+                            return res.status(500).json({ message: "Failed to save scores due to a database error." });
+                        }
+                        db.run("COMMIT", () => {
+                            res.status(201).json({ message: "Scores submitted successfully." });
+                            calculateAndEmitResults();
+                            emitKpiUpdate();
+                        });
                     });
                 });
             });

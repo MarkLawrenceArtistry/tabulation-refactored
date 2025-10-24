@@ -10,6 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const contestId = urlParams.get('contest');
     let isLoading = false;
 
+    socket.on('connect', () => console.log('✅ Judge Segments: Connected to WebSocket server'));
+
+    // --- FIX: Listen for the status change event from the server ---
+    socket.on('segment_status_changed', () => {
+        console.log('Segment status changed on server. Refreshing list...');
+        loadSegments(); // Re-run the function to fetch and display the updated segments
+    });
+
     if (!contestId) {
         alert('No contest selected.');
         window.location.href = '/judge-dashboard.html';

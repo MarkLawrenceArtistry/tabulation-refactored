@@ -144,7 +144,7 @@ function setupFormSubmission(contestId, cacheKey) {
         }
 
         try {
-            await apiRequest('/api/judging/scores', 'POST', { scores: scoresPayload, contest_id: contestId });
+            await apiRequest('/api/judging/scores', 'POST', { scores: scoresPayload });
             
             clearScoresFromCache(cacheKey);
 

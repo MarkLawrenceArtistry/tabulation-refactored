@@ -20,19 +20,25 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
     try {
         const response = await fetch(endpoint, options);
 
-        // --- NEW: If a request succeeds, the connection is back. Hide the banner. ---
         if (window.hideConnectionError) {
             hideConnectionError();
         }
 
+        // --- FIX: Graceful Logout on Authentication Failure ---
+        // If the server rejects the token, clear session and redirect to login.
+        if (response.status === 401 || response.status === 403) {
+            console.error('Authentication error. Token may be invalid or expired. Logging out.');
+            localStorage.clear();
+            window.location.href = '/login.html';
+            throw new Error('Authentication failed. Redirecting to login page.');
+        }
+
         if (!response.ok) {
             const errorText = await response.text();
-            // Try to parse as JSON for structured error messages from the server
             try {
                 const errorJson = JSON.parse(errorText);
                 throw new Error(errorJson.message || `HTTP error! status: ${response.status}`);
             } catch (e) {
-                // Fallback for non-JSON error messages
                 throw new Error(errorText || `HTTP error! status: ${response.status}`);
             }
         }
@@ -46,14 +52,12 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
     } catch (error) {
         console.error('API Request Error:', error.message);
 
-        // --- NEW: Check for the specific network error ---
-        // "Failed to fetch" is the standard message for connection refused, DNS errors, CORS issues etc.
         if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
             if (window.showConnectionError) {
                 showConnectionError();
             }
         }
         
-        throw error; // Still throw the error so individual pages can handle other issues
+        throw error;
     }
 }
