@@ -20,7 +20,7 @@ db.serialize(() => {
     console.log("Creating new tables with correct structure...");
 
     // Users & Contests are mostly the same
-    db.run(`CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL)`);
+    db.run(`CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL, active_session_id TEXT NULL)`);
     db.run(`CREATE TABLE contests (id INTEGER PRIMARY KEY, name TEXT NOT NULL, image_url TEXT)`);
 
     // Candidates now cascade delete with their contest

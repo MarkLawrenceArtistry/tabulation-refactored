@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const fs = require('fs');
 const { Server } = require("socket.io");
+const crypto = require('crypto'); // <-- ADD THIS LINE
 
 // --- CONFIGURATION ---
 const PORT = process.env.PORT || 5015;
@@ -19,6 +20,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 const activeUsers = {}; // Stores { socketId: { username, role } }
+const userSocketMap = {}; // <-- ADD THIS LINE: Maps { userId: socketId }
 const serverStartTime = Date.now();
 
 app.use(cors());
@@ -37,7 +39,38 @@ db.run("PRAGMA foreign_keys = ON;");
 db.run("PRAGMA journal_mode = WAL;");
 
 // --- AUTH & RBAC MIDDLEWARE ---
-const authenticateToken = (req, res, next) => { const authHeader = req.headers['authorization']; const token = authHeader && authHeader.split(' ')[1]; if (token == null) return res.sendStatus(401); jwt.verify(token, JWT_SECRET, (err, user) => { if (err) return res.sendStatus(403); req.user = user; next(); }); };
+const authenticateToken = async (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (token == null) {
+        return res.sendStatus(401); // No token
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.sendStatus(403); // Token is invalid (bad signature, expired, etc.)
+        }
+
+        // Token signature is valid, now check if the session is the active one.
+        const sql = "SELECT active_session_id FROM users WHERE id = ?";
+        db.get(sql, [user.id], (dbErr, row) => {
+            if (dbErr || !row) {
+                return res.sendStatus(401); // User not found or DB error
+            }
+
+            // Compare session ID from token with the one in the database
+            if (row.active_session_id !== user.sessionId) {
+                // This token is from an old, invalidated session.
+                return res.status(401).json({ message: "This session has been invalidated by a new login." });
+            }
+
+            // Both token and session are valid
+            req.user = user;
+            next();
+        });
+    });
+};
 const authorizeRoles = (...allowedRoles) => { return (req, res, next) => { if (!req.user || !allowedRoles.includes(req.user.role)) { return res.status(403).json({ message: 'Access denied.' }); } next(); }; };
 
 // --- TABULATION FUNCTION ---
@@ -162,16 +195,16 @@ const emitKpiUpdate = () => {
 // --- SOCKET.IO CONNECTION ---
 io.on('connection', (socket) => {
     console.log(`A user connected with socket ID: ${socket.id}`);
-    calculateAndEmitResults(); // Still emit results to everyone on new connection
+    calculateAndEmitResults();
 
-    // New event for a client to authenticate its socket connection
     socket.on('client_auth', (token) => {
         if (token) {
             jwt.verify(token, JWT_SECRET, (err, user) => {
                 if (!err) {
                     activeUsers[socket.id] = { username: user.username, role: user.role };
-                    console.log(`Socket ${socket.id} authenticated as ${user.username}`);
-                    emitKpiUpdate(); // Send updated KPIs to all admins
+                    userSocketMap[user.id] = socket.id; // <-- Store the user-to-socket mapping
+                    console.log(`Socket ${socket.id} authenticated as ${user.username} (ID: ${user.id})`);
+                    emitKpiUpdate();
                 }
             });
         }
@@ -181,14 +214,56 @@ io.on('connection', (socket) => {
         const disconnectedUser = activeUsers[socket.id];
         if (disconnectedUser) {
             console.log(`User ${disconnectedUser.username} disconnected.`);
+            // Find the user ID to remove from the map
+            const userId = Object.keys(userSocketMap).find(key => userSocketMap[key] === socket.id);
+            if (userId) {
+                delete userSocketMap[userId];
+            }
         }
         delete activeUsers[socket.id];
-        emitKpiUpdate(); // Send updated KPIs to all admins
+        emitKpiUpdate();
     });
 });
 
 // === API ROUTES ===
-app.post('/api/auth/login', (req, res) => { const { username, password } = req.body; db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => { if (err || !user) return res.status(401).json({ message: 'Invalid credentials.' }); bcrypt.compare(password, user.password_hash, (err, isMatch) => { if (err || !isMatch) return res.status(401).json({ message: 'Invalid credentials.' }); const payload = { id: user.id, username: user.username, role: user.role }; const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' }); res.json({ token, user: payload }); }); }); });
+app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
+        if (err || !user) return res.status(401).json({ message: 'Invalid credentials.' });
+
+        bcrypt.compare(password, user.password_hash, (err, isMatch) => {
+            if (err || !isMatch) return res.status(401).json({ message: 'Invalid credentials.' });
+
+            // --- SINGLE SESSION LOGIC ---
+            // 1. Generate a new, unique session ID for this login.
+            const newSessionId = crypto.randomBytes(16).toString('hex');
+
+            // 2. Check if there's an old socket connection for this user and kick it out.
+            const oldSocketId = userSocketMap[user.id];
+            if (oldSocketId) {
+                console.log(`Forcing logout for user ${user.username} on old socket ${oldSocketId}`);
+                io.to(oldSocketId).emit('force_logout');
+            }
+            
+            // 3. Update the database with the new active session ID.
+            db.run("UPDATE users SET active_session_id = ? WHERE id = ?", [newSessionId, user.id], (updateErr) => {
+                if (updateErr) {
+                    return res.status(500).json({ message: "Failed to update session." });
+                }
+
+                // 4. Create the JWT with the new session ID included in the payload.
+                const payload = {
+                    id: user.id,
+                    username: user.username,
+                    role: user.role,
+                    sessionId: newSessionId // <-- Crucial addition
+                };
+                const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
+                res.json({ token, user: payload });
+            });
+        });
+    });
+});
 app.get('/api/users', authenticateToken, authorizeRoles('superadmin'), (req, res) => { db.all("SELECT id, username, role FROM users", [], (err, rows) => res.json(rows)); });
 app.post('/api/users', authenticateToken, authorizeRoles('superadmin'), (req, res) => { const { username, password, role } = req.body; bcrypt.hash(password, 10, (err, hash) => { db.run(`INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)`, [username, hash, role], function (err) { if (err) return res.status(409).json({ message: 'Username exists.' }); res.status(201).json({ id: this.lastID, username, role }); }); }); });
 

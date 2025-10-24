@@ -28,4 +28,11 @@
     window.socket.on('disconnect', () => {
         console.log('⚠️ Global socket disconnected.');
     });
+
+    // --- FIX: Listen for the force_logout event from the server ---
+    window.socket.on('force_logout', () => {
+        alert("This account has been signed in from another device or location. You have been logged out.");
+        localStorage.clear();
+        window.location.href = '/login.html';
+    });
 })();
