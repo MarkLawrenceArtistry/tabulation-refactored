@@ -615,11 +615,12 @@ app.get('/api/reports/full-tabulation', authenticateToken, authorizeRoles('admin
         });
 
         const contestSql = `SELECT name FROM contests WHERE id = ?`;
-        const segmentsSql = `SELECT id, name, percentage FROM segments WHERE contest_id = ? ORDER BY id`;
+        const segmentsSql = `SELECT id, name, percentage, type FROM segments WHERE contest_id = ? ORDER BY id`;
         const criteriaSql = `SELECT id, name, max_score, segment_id FROM criteria WHERE segment_id IN (SELECT id FROM segments WHERE contest_id = ?) ORDER BY segment_id, id`;
         const candidatesSql = `SELECT id, name, candidate_number FROM candidates WHERE contest_id = ? ORDER BY candidate_number`;
         const judgesSql = `SELECT id, username FROM users WHERE role = 'judge' ORDER BY id`;
         const scoresSql = `SELECT judge_id, candidate_id, criterion_id, score FROM scores WHERE contest_id = ?`;
+        const adminScoresSql = `SELECT candidate_id, segment_id, score FROM admin_scores WHERE contest_id = ?`;
 
         const [
             contestRows,
@@ -627,14 +628,16 @@ app.get('/api/reports/full-tabulation', authenticateToken, authorizeRoles('admin
             criteria,
             candidates,
             judges,
-            scores
+            scores,
+            adminScores
         ] = await Promise.all([
             dbAll(contestSql, [contest_id]),
             dbAll(segmentsSql, [contest_id]),
             dbAll(criteriaSql, [contest_id]),
             dbAll(candidatesSql, [contest_id]),
             dbAll(judgesSql, []),
-            dbAll(scoresSql, [contest_id])
+            dbAll(scoresSql, [contest_id]),
+            dbAll(adminScoresSql, [contest_id])
         ]);
 
         if (contestRows.length === 0) {
@@ -647,6 +650,11 @@ app.get('/api/reports/full-tabulation', authenticateToken, authorizeRoles('admin
             scoresMap.set(`${s.judge_id}:${s.candidate_id}:${s.criterion_id}`, s.score);
         });
         
+        const adminScoresMap = new Map(); // "candidate_id:segment_id" -> score
+        adminScores.forEach(s => {
+            adminScoresMap.set(`${s.candidate_id}:${s.segment_id}`, s.score);
+        });
+
         const finalResultsSql = `
             WITH JudgeRawSegmentScores AS (
                 SELECT 
@@ -698,7 +706,8 @@ app.get('/api/reports/full-tabulation', authenticateToken, authorizeRoles('admin
             criteria,
             candidates,
             judges,
-            scoresMap: Object.fromEntries(scoresMap), // Convert map to object for JSON
+            scoresMap: Object.fromEntries(scoresMap),
+            adminScoresMap: Object.fromEntries(adminScoresMap),
             finalScores: Object.fromEntries(finalScoresMap)
         };
 

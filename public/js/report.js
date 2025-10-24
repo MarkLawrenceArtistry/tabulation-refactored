@@ -54,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 3. (REWRITTEN) Function to render the HTML table in the desired format
     function renderReport() {
         if (!currentReportData) return;
         const data = currentReportData;
@@ -71,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
             candidatesToDisplay = candidatesToDisplay.slice(0, topN);
         }
         
-        // --- START of HTML GENERATION ---
         let html = `
             <div id="report-header">
                 <h2>${data.contestName}</h2>
@@ -80,54 +78,74 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        // --- LOOP THROUGH SEGMENTS TO CREATE A TABLE FOR EACH ---
         data.segments.forEach(segment => {
             const criteriaForSegment = data.criteria.filter(c => c.segment_id === segment.id);
-            if (criteriaForSegment.length === 0) return; // Skip segments with no criteria
 
-            html += `<table class="report-table">`;
-            
-            // Segment Title Header
-            html += `<thead>
-                <tr>
-                    <th class="segment-header" colspan="${2 + criteriaForSegment.length}">${segment.name} (${segment.percentage}%)</th>
-                </tr>
-                <tr>
-                    <th>Candidate</th>
-                    <th>Name</th>
-                    ${criteriaForSegment.map(c => `<th>${c.name} (${c.max_score}%)</th>`).join('')}
-                </tr>
-            </thead>`;
-
-            // Table Body with Candidate Data
-            html += `<tbody>`;
-            candidatesToDisplay.forEach(candidate => {
-                html += `<tr>
-                    <td>#${candidate.candidate_number}</td>
-                    <td>${candidate.name}</td>`;
-                
-                criteriaForSegment.forEach(criterion => {
-                    let totalScore = 0;
-                    let judgeCount = 0;
-                    data.judges.forEach(judge => {
-                        const scoreKey = `${judge.id}:${candidate.id}:${criterion.id}`;
-                        const score = data.scoresMap[scoreKey];
-                        if (score !== undefined) {
-                            totalScore += parseFloat(score);
-                            judgeCount++;
-                        }
-                    });
-                    const averageScore = judgeCount > 0 ? (totalScore / judgeCount).toFixed(2) : '-';
-                    html += `<td>${averageScore}</td>`;
+            if (segment.type === 'admin') {
+                html += `<table class="report-table">`;
+                html += `<thead>
+                    <tr>
+                        <th class="segment-header" colspan="3">${segment.name} (${segment.percentage}%)</th>
+                    </tr>
+                    <tr>
+                        <th>Candidate</th>
+                        <th>Name</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>`;
+                html += `<tbody>`;
+                candidatesToDisplay.forEach(candidate => {
+                    const scoreKey = `${candidate.id}:${segment.id}`;
+                    const score = data.adminScoresMap[scoreKey] !== undefined ? data.adminScoresMap[scoreKey].toFixed(2) : '-';
+                    html += `<tr>
+                        <td>#${candidate.candidate_number}</td>
+                        <td>${candidate.name}</td>
+                        <td>${score}</td>
+                    </tr>`;
                 });
-                
-                html += `</tr>`;
-            });
-            html += `</tbody></table>`;
-            html += `<br>`; // Add a line break between segment tables
+                html += `</tbody></table>`;
+                html += `<br>`;
+            }
+            else if (segment.type === 'judge' && criteriaForSegment.length > 0) {
+                html += `<table class="report-table">`;
+                html += `<thead>
+                    <tr>
+                        <th class="segment-header" colspan="${2 + criteriaForSegment.length}">${segment.name} (${segment.percentage}%)</th>
+                    </tr>
+                    <tr>
+                        <th>Candidate</th>
+                        <th>Name</th>
+                        ${criteriaForSegment.map(c => `<th>${c.name} (${c.max_score}%)</th>`).join('')}
+                    </tr>
+                </thead>`;
+                html += `<tbody>`;
+                candidatesToDisplay.forEach(candidate => {
+                    html += `<tr>
+                        <td>#${candidate.candidate_number}</td>
+                        <td>${candidate.name}</td>`;
+                    
+                    criteriaForSegment.forEach(criterion => {
+                        let totalScore = 0;
+                        let judgeCount = 0;
+                        data.judges.forEach(judge => {
+                            const scoreKey = `${judge.id}:${candidate.id}:${criterion.id}`;
+                            const score = data.scoresMap[scoreKey];
+                            if (score !== undefined) {
+                                totalScore += parseFloat(score);
+                                judgeCount++;
+                            }
+                        });
+                        const averageScore = judgeCount > 0 ? (totalScore / judgeCount).toFixed(2) : '-';
+                        html += `<td>${averageScore}</td>`;
+                    });
+                    
+                    html += `</tr>`;
+                });
+                html += `</tbody></table>`;
+                html += `<br>`;
+            }
         });
 
-        // --- FINAL RANKING TABLE (at the end) ---
         html += `<table class="report-table">
             <thead>
                 <tr><th class="segment-header" colspan="3">Final Ranking</th></tr>
@@ -148,7 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
         reportContainer.innerHTML = html;
     }
     
-    // 4. (REWRITTEN) EXPORT TO XLSX
     function exportToXLSX() {
         if (!currentReportData) {
             alert("Please generate a report first.");
@@ -166,33 +183,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
         ws_data.push([data.contestName + " Full Tabulation"]);
         ws_data.push([`Generated on: ${data.generatedDate}`]);
-        ws_data.push([]); // Spacer row
+        ws_data.push([]);
 
-        // Loop through segments to build the sheet
         data.segments.forEach(segment => {
             const criteriaForSegment = data.criteria.filter(c => c.segment_id === segment.id);
-            if (criteriaForSegment.length === 0) return;
-
-            ws_data.push([`${segment.name} (${segment.percentage}%)`]); // Segment header
-            const headerRow = ["#", "Candidate Name", ...criteriaForSegment.map(c => `${c.name} (${c.max_score}%)`)];
-            ws_data.push(headerRow);
-
-            candidatesToDisplay.forEach(candidate => {
-                const row = [candidate.candidate_number, candidate.name];
-                criteriaForSegment.forEach(criterion => {
-                    let total = 0, count = 0;
-                    data.judges.forEach(judge => {
-                        const score = data.scoresMap[`${judge.id}:${candidate.id}:${criterion.id}`];
-                        if(score !== undefined) { total += score; count++; }
-                    });
-                    row.push(count > 0 ? (total / count).toFixed(2) : '');
+            
+            if (segment.type === 'admin') {
+                ws_data.push([`${segment.name} (${segment.percentage}%)`]);
+                ws_data.push(["#", "Candidate Name", "Score"]);
+                candidatesToDisplay.forEach(candidate => {
+                    const scoreKey = `${candidate.id}:${segment.id}`;
+                    const score = data.adminScoresMap[scoreKey] !== undefined ? data.adminScoresMap[scoreKey].toFixed(2) : '';
+                    ws_data.push([candidate.candidate_number, candidate.name, score]);
                 });
-                ws_data.push(row);
-            });
-            ws_data.push([]); // Spacer row between segments
+                ws_data.push([]);
+            } else if (segment.type === 'judge' && criteriaForSegment.length > 0) {
+                ws_data.push([`${segment.name} (${segment.percentage}%)`]);
+                const headerRow = ["#", "Candidate Name", ...criteriaForSegment.map(c => `${c.name} (${c.max_score}%)`)];
+                ws_data.push(headerRow);
+
+                candidatesToDisplay.forEach(candidate => {
+                    const row = [candidate.candidate_number, candidate.name];
+                    criteriaForSegment.forEach(criterion => {
+                        let total = 0, count = 0;
+                        data.judges.forEach(judge => {
+                            const score = data.scoresMap[`${judge.id}:${candidate.id}:${criterion.id}`];
+                            if(score !== undefined) { total += score; count++; }
+                        });
+                        row.push(count > 0 ? (total / count).toFixed(2) : '');
+                    });
+                    ws_data.push(row);
+                });
+                ws_data.push([]);
+            }
         });
 
-        // Add Final Ranking at the end
         ws_data.push([]);
         ws_data.push(["Final Ranking"]);
         ws_data.push(["Rank", "Candidate", "Final Score"]);

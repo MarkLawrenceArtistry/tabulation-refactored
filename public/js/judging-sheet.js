@@ -64,7 +64,7 @@ function populateCandidateCards(criteria, candidates) {
                     <label for="score-${candidate.id}-${c.id}">${c.name} (${c.max_score}%)</label>
                     <input type="number" id="score-${candidate.id}-${c.id}" class="score-input"
                         min="0" max="100" placeholder="0-100" required
-                        data-candidate-id="${candidate.id}" data-criterion-id="${c.id}">
+                        data-candidate-id="${candidate.id}" data-criterion-id="${c.id}" onKeyPress="if(this.value.length==3) return false;">
                 </div>
             `;
         });
