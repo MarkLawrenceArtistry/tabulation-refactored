@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const firstPlace = document.getElementById('first-place');
     const secondPlace = document.getElementById('second-place');
     const thirdPlace = document.getElementById('third-place');
+    
 
     let fullResults = {};
     let previousRanks = {};
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         second: { id: null, score: null },
         third: { id: null, score: null }
     };
+    let previousContestName = null;
     let isLoading = false;
 
     socket.on('connect', () => console.log('✅ Connected to WebSocket server'));
@@ -81,6 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderPodium(contestName) {
+        const contestHasChanged = previousContestName !== contestName;
+        previousContestName = contestName;
+
         const results = fullResults[contestName] || [];
 
         const sorted = [...results].sort((a, b) => parseFloat(b.total_score) - parseFloat(a.total_score));
@@ -107,9 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const newId = candidate?.candidate_number || null;
             const newScore = candidate ? parseFloat(candidate.total_score || 0).toFixed(2) : '0.00';
 
-            // YOUR ANIMATION LOGIC - UNTOUCHED
-            // This runs ONLY when the candidate in the slot changes.
-            if (prevData.id !== newId) {
+            // FIX: The update is now also triggered if the contest has changed.
+            // This forces empty slots to be rendered as "N/A", clearing out old candidates.
+            if (contestHasChanged || prevData.id !== newId) {
                 const oldElement = p.element;
                 const prevValues = Object.values(previousPodium).map(val => val.id);
 
@@ -130,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         `;
                         oldElement.style.background = gradients[i];
                     } else {
+                        // This block now correctly runs when switching to a contest with fewer than 3 people.
                         oldElement.innerHTML = `
                             <img src="/images/placeholder.png" alt="Empty">
                             <div class="podium-name">N/A</div>
@@ -156,7 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 1600);
                 }, 800);
             } 
-            // --- THIS IS THE NEW CODE ---
             // This runs ONLY when the candidate is the same, but the score is different.
             else if (prevData.id === newId && prevData.score !== newScore) {
                 const scoreElement = p.element.querySelector('.podium-score');
@@ -164,7 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     scoreElement.textContent = newScore;
                 }
             }
-            // --- END OF NEW CODE ---
 
 
             // YOUR HEIGHT TRANSITION - UNTOUCHED
