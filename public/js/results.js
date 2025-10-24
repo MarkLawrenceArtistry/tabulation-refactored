@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => {
                     if (candidate) {
                         oldElement.innerHTML = `
-                            <img src="${candidate.image_url || '/images/placeholder.png'}" alt="${candidate.candidate_name}">
+                            <img src="${candidate.image_url || '/assets/placeholder.png'}" alt="${candidate.candidate_name}">
                             <div class="podium-name">#${candidate.candidate_number} ${candidate.candidate_name}</div>
                             <div class="podium-score">${newScore}</div>
                             <div class="podium-rank podium-rank-${i + 1}">${rankLabels[i]}</div>
@@ -137,8 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         // This block now correctly runs when switching to a contest with fewer than 3 people.
                         oldElement.innerHTML = `
-                            <img src="/images/placeholder.png" alt="Empty">
-                            <div class="podium-name">N/A</div>
+                            <img src="/assets/placeholder.png" alt="Empty">
+                            <div class="podium-name">Empty Candidate</div>
                             <div class="podium-score">0.00</div>
                             <div class="podium-rank podium-rank-${i + 1}">${rankLabels[i]}</div>
                         `;
