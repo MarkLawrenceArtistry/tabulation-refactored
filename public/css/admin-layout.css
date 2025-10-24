@@ -99,3 +99,16 @@
 .admin-layout .container {
     padding: 0;
 }
+
+#segment-percentage-box, #criteria-percentage-box {
+    width: 100px;
+    padding: 15px;
+    border-radius: 15px;
+    border: none;
+    font-weight: bold;
+    text-align: center;
+}
+
+#criteria-percentage-box {
+    margin-bottom: 15px;
+}

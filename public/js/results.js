@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const LEADERBOARD_LIMIT = 10;
     const tableBody = document.getElementById('results-table-body');
     const contestSelect = document.getElementById('contest-leaderboard-select');
     const leaderboardTitle = document.getElementById('leaderboard-title');
@@ -40,6 +41,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     contestSelect.addEventListener('change', () => {
+        // --- THIS IS THE FIX ---
+        // Reset all state-tracking variables to force a clean render
+        previousPodium = {
+            first: { id: null, score: null },
+            second: { id: null, score: null },
+            third: { id: null, score: null }
+        };
+        previousRanks = {};
+        rowPositions = {};
+        // Clear the table body immediately for a snappier user experience
+        tableBody.innerHTML = '<tr><td colspan="5">Loading results...</td></tr>';
+        // --- END OF FIX ---
+
         const selectedContest = contestSelect.value;
         renderPodium(selectedContest);
         renderResultsForContest(selectedContest);
@@ -181,10 +195,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         results.sort((a, b) => parseFloat(b.total_score) - parseFloat(a.total_score));
 
+        // Create a new array containing only the top N candidates
+        const topResults = results.slice(0, LEADERBOARD_LIMIT); // <<< --- THIS IS THE KEY CHANGE
+
         tableBody.innerHTML = '';
-        results.forEach((result, index) => {
+        topResults.forEach((result, index) => { // <<< --- WE NOW LOOP OVER `topResults`
             const rank = index + 1;
             const score = result.total_score ? parseFloat(result.total_score).toFixed(2) : '0.00';
+            // ... (the rest of the loop logic is identical) ...
             const imageUrl = result.image_url || '/images/placeholder.png';
             const prevRank = previousRanks[result.candidate_number];
             let trendHTML = '-';
@@ -222,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Animate row movement (FLIP)
         const newRows = Array.from(tableBody.querySelectorAll('tr'));
+        // ... (the rest of the animation logic is identical) ...
         newRows.forEach(row => {
             const id = row.dataset.id;
             const oldTop = rowPositions[id];
