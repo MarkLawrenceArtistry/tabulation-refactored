@@ -81,6 +81,40 @@ document.addEventListener('DOMContentLoaded', () => {
         data.segments.forEach(segment => {
             const criteriaForSegment = data.criteria.filter(c => c.segment_id === segment.id);
 
+            let candidatesWithSegmentScores = candidatesToDisplay.map(candidate => {
+                let segmentScore = -1; 
+                if (segment.type === 'admin') {
+                    const scoreKey = `${candidate.id}:${segment.id}`;
+                    if (data.adminScoresMap[scoreKey] !== undefined) {
+                        segmentScore = parseFloat(data.adminScoresMap[scoreKey]);
+                    }
+                } else if (segment.type === 'judge' && criteriaForSegment.length > 0) {
+                    let calculatedSegmentScore = 0;
+                    criteriaForSegment.forEach(criterion => {
+                        let totalScore = 0;
+                        let judgeCount = 0;
+                        data.judges.forEach(judge => {
+                            const scoreKey = `${judge.id}:${candidate.id}:${criterion.id}`;
+                            const score = data.scoresMap[scoreKey];
+                            if (score !== undefined) {
+                                totalScore += parseFloat(score);
+                                judgeCount++;
+                            }
+                        });
+                        const averageScore = judgeCount > 0 ? (totalScore / judgeCount) : 0;
+                        calculatedSegmentScore += averageScore * (criterion.max_score / 100.0);
+                    });
+                    segmentScore = calculatedSegmentScore;
+                }
+                return { candidate, segmentScore };
+            });
+
+            candidatesWithSegmentScores.sort((a, b) => {
+                if (b.segmentScore !== a.segmentScore) return b.segmentScore - a.segmentScore;
+                if (a.candidate.candidate_number !== b.candidate.candidate_number) return a.candidate.candidate_number - b.candidate.candidate_number;
+                return a.candidate.name.localeCompare(b.candidate.name);
+            });
+            
             if (segment.type === 'admin') {
                 html += `<table class="report-table">`;
                 html += `<thead>
@@ -94,12 +128,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr>
                 </thead>`;
                 html += `<tbody>`;
-                candidatesToDisplay.forEach(candidate => {
-                    const scoreKey = `${candidate.id}:${segment.id}`;
-                    const score = data.adminScoresMap[scoreKey] !== undefined ? data.adminScoresMap[scoreKey].toFixed(2) : '-';
+                candidatesWithSegmentScores.forEach(item => {
+                    const score = item.segmentScore >= 0 ? item.segmentScore.toFixed(2) : '-';
                     html += `<tr>
-                        <td>#${candidate.candidate_number}</td>
-                        <td>${candidate.name}</td>
+                        <td>#${item.candidate.candidate_number}</td>
+                        <td>${item.candidate.name}</td>
                         <td>${score}</td>
                     </tr>`;
                 });
@@ -110,16 +143,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 html += `<table class="report-table">`;
                 html += `<thead>
                     <tr>
-                        <th class="segment-header" colspan="${2 + criteriaForSegment.length}">${segment.name} (${segment.percentage}%)</th>
+                        <th class="segment-header" colspan="${3 + criteriaForSegment.length}">${segment.name} (${segment.percentage}%)</th>
                     </tr>
                     <tr>
                         <th>Candidate</th>
                         <th>Name</th>
                         ${criteriaForSegment.map(c => `<th>${c.name} (${c.max_score}%)</th>`).join('')}
+                        <th>Total</th>
                     </tr>
                 </thead>`;
                 html += `<tbody>`;
-                candidatesToDisplay.forEach(candidate => {
+                candidatesWithSegmentScores.forEach(item => {
+                    const { candidate, segmentScore } = item;
                     html += `<tr>
                         <td>#${candidate.candidate_number}</td>
                         <td>${candidate.name}</td>`;
@@ -139,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         html += `<td>${averageScore}</td>`;
                     });
                     
+                    html += `<td><strong>${segmentScore >= 0 ? segmentScore.toFixed(2) : '-'}</strong></td>`;
                     html += `</tr>`;
                 });
                 html += `</tbody></table>`;
@@ -188,21 +224,50 @@ document.addEventListener('DOMContentLoaded', () => {
         data.segments.forEach(segment => {
             const criteriaForSegment = data.criteria.filter(c => c.segment_id === segment.id);
             
+            let candidatesWithSegmentScores = candidatesToDisplay.map(candidate => {
+                let segmentScore = -1;
+                if (segment.type === 'admin') {
+                    const scoreKey = `${candidate.id}:${segment.id}`;
+                    if (data.adminScoresMap[scoreKey] !== undefined) {
+                        segmentScore = parseFloat(data.adminScoresMap[scoreKey]);
+                    }
+                } else if (segment.type === 'judge' && criteriaForSegment.length > 0) {
+                    let calculatedSegmentScore = 0;
+                    criteriaForSegment.forEach(criterion => {
+                        let total = 0, count = 0;
+                        data.judges.forEach(judge => {
+                            const score = data.scoresMap[`${judge.id}:${candidate.id}:${criterion.id}`];
+                            if(score !== undefined) { total += score; count++; }
+                        });
+                        const averageScore = count > 0 ? (total / count) : 0;
+                        calculatedSegmentScore += averageScore * (criterion.max_score / 100.0);
+                    });
+                    segmentScore = calculatedSegmentScore;
+                }
+                return { candidate, segmentScore };
+            });
+
+            candidatesWithSegmentScores.sort((a, b) => {
+                if (b.segmentScore !== a.segmentScore) return b.segmentScore - a.segmentScore;
+                if (a.candidate.candidate_number !== b.candidate.candidate_number) return a.candidate.candidate_number - b.candidate.candidate_number;
+                return a.candidate.name.localeCompare(b.candidate.name);
+            });
+            
             if (segment.type === 'admin') {
                 ws_data.push([`${segment.name} (${segment.percentage}%)`]);
                 ws_data.push(["#", "Candidate Name", "Score"]);
-                candidatesToDisplay.forEach(candidate => {
-                    const scoreKey = `${candidate.id}:${segment.id}`;
-                    const score = data.adminScoresMap[scoreKey] !== undefined ? data.adminScoresMap[scoreKey].toFixed(2) : '';
-                    ws_data.push([candidate.candidate_number, candidate.name, score]);
+                candidatesWithSegmentScores.forEach(item => {
+                    const score = item.segmentScore >= 0 ? item.segmentScore.toFixed(2) : '';
+                    ws_data.push([item.candidate.candidate_number, item.candidate.name, score]);
                 });
                 ws_data.push([]);
             } else if (segment.type === 'judge' && criteriaForSegment.length > 0) {
                 ws_data.push([`${segment.name} (${segment.percentage}%)`]);
-                const headerRow = ["#", "Candidate Name", ...criteriaForSegment.map(c => `${c.name} (${c.max_score}%)`)];
+                const headerRow = ["#", "Candidate Name", ...criteriaForSegment.map(c => `${c.name} (${c.max_score}%)`), 'Total'];
                 ws_data.push(headerRow);
 
-                candidatesToDisplay.forEach(candidate => {
+                candidatesWithSegmentScores.forEach(item => {
+                    const { candidate, segmentScore } = item;
                     const row = [candidate.candidate_number, candidate.name];
                     criteriaForSegment.forEach(criterion => {
                         let total = 0, count = 0;
@@ -212,6 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                         row.push(count > 0 ? (total / count).toFixed(2) : '');
                     });
+                    row.push(segmentScore >= 0 ? segmentScore.toFixed(2) : '');
                     ws_data.push(row);
                 });
                 ws_data.push([]);
