@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Candidates</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-layout.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <aside id="admin-sidebar-container"></aside>
+        <main class="admin-main-content">
+            <h1>Manage Candidates</h1>
+            <div class="card">
+                <h2>Select Contest</h2>
+                <select id="contest-select">
+                    <option value="">-- Select a Contest to Manage Candidates --</option>
+                </select>
+            </div>
+
+            <div id="candidates-management-section" class="hidden">
+                <div class="grid-container">
+                    <div class="card">
+                        <h2>Add New Candidate</h2>
+                        <form id="add-candidate-form" class="vertical-form">
+                            <input type="text" name="name" placeholder="Candidate Name" required>
+                            <input type="number" name="candidate_number" placeholder="No." required>
+                            <input type="text" name="branch" placeholder="Branch">
+                            <input type="text" name="course" placeholder="Course">
+                            <input type="text" name="section" placeholder="Section">
+                            <input type="text" name="year_level" placeholder="Year Level">
+                            <input type="file" name="image" accept="image/*">
+                            <button type="submit">Add Candidate</button>
+                        </form>
+                    </div>
+                    <div class="card" style="grid-column: span 2;">
+                        <h2 id="candidates-list-header">Existing Candidates</h2>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Photo</th>
+                                        <th>No.</th>
+                                        <th>Name</th>
+                                        <th>Branch</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="candidates-table-body">
+                                    <tr><td colspan="5">Select a contest first.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="edit-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="edit-modal-title">Edit Candidate</h2>
+                <button id="close-modal-btn" class="close-btn">&times;</button>
+            </div>
+            <form id="edit-form">
+                <div id="edit-form-fields"></div>
+                <div class="form-actions">
+                    <button type="submit">Save Changes</button>
+                    <button type="button" id="cancel-edit-btn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script src="/js/admin-sidebar.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/manage-candidates.js"></script>
+</body>
+</html>

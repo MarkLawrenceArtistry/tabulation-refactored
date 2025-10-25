@@ -36,63 +36,6 @@
                 <section class="main-content">
                     <div id="contest-details-section" class="hidden">
                         <h2 id="selected-contest-name"></h2>
-                        
-                        <!-- Candidates Management -->
-                        <div class="card">
-                            <h3>Candidates</h3>
-                            <form id="add-candidate-form">
-                                <input type="text" name="name" placeholder="Candidate Name" required>
-                                <input type="number" name="candidate_number" placeholder="No." required>
-                                <input type="text" name="branch" placeholder="Branch">
-                                <input type="text" name="course" placeholder="Course">
-                                <input type="text" name="section" placeholder="Section">
-                                <input type="text" name="year_level" placeholder="Year Level">
-                                <input type="file" name="image" accept="image/*">
-                                <button type="submit">Add Candidate</button>
-                            </form>
-                            <table class="data-table">
-                                <thead><tr><th>Photo</th><th>No.</th><th>Name</th><th>Actions</th></tr></thead>
-                                <tbody id="candidates-table-body"></tbody>
-                            </table>
-                        </div>
-
-                        <!-- Segments & Criteria Management -->
-                        <div class="card">
-                            <h3>Segments & Criteria</h3>
-                            <div class="grid-container">
-                                <div class="grid-item">
-                                    <h4>Add Segment</h4>
-                                    <form id="add-segment-form" class="vertical-form">
-                                        <input type="text" name="name" placeholder="Segment Name" required>
-                                        <input type="number" name="percentage" placeholder="Percentage (%)" required>
-                                        <select name="type" required>
-                                            <option value="judge" selected>Judge-Voted (Needs Criteria)</option>
-                                            <option value="admin">Admin-Scored (No Criteria)</option>
-                                        </select>
-                                        <button type="submit">Add Segment</button>
-                                    </form>
-                                    <div class="segment-header">
-                                      <h4>Existing Segments</h4>
-                                      <div id="segment-percentage-box" class="segment-percentage-box">Total: 0%</div>
-                                    </div>
-                                    <ul id="segments-list" class="item-list"></ul>
-                                </div>
-                                <div class="grid-item">
-                                    <div class="segment-header">
-                                      <h4>Add Criterion</h4>
-                                      <div id="criteria-percentage-box" class="criteria-percentage-box">Total: 0%</div>
-                                    </div>
-                                    <form id="add-criteria-form" class="vertical-form">
-                                        <select name="segment_id" id="criteria-segment-select" required><option value="">Select a segment first</option></select>
-                                        <input type="text" name="name" placeholder="Criterion Name" required>
-                                        <input type="number" name="max_score" placeholder="Weight (%)" required>
-                                        <button type="submit">Add Criterion</button>
-                                    </form>
-                                    <h4>Existing Criteria</h4>
-                                    <div id="criteria-display"></div>
-                                </div>
-                            </div>
-                        </div>
 
                     </div>
                     <div id="welcome-message" class="card">
