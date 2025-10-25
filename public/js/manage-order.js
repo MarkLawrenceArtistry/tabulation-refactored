@@ -24,8 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const candidates = await apiRequest(`/api/contests/${contestId}/candidates`);
         tableBody.innerHTML = '';
-        candidates.forEach((c, index) => {
-            const displayOrder = c.display_order !== null ? c.display_order : index + 1;
+        candidates.forEach((c) => {
+            const displayOrder = c.display_order !== null ? c.display_order : '';
             const imageUrl = c.image_url || '/images/placeholder.png';
             const row = document.createElement('tr');
             row.dataset.candidateId = c.id;
@@ -45,49 +45,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     contestSelect.addEventListener('change', () => loadCandidates(contestSelect.value));
 
-    tableBody.addEventListener('click', async (e) => {
+    tableBody.addEventListener('click', (e) => {
         if (e.target.matches('.btn-toggle-status')) {
             const button = e.target;
             const row = button.closest('tr');
-            const candidateId = row.dataset.candidateId;
             const statusBadge = row.querySelector('.status-badge');
             const currentStatus = button.dataset.currentStatus;
             const newStatus = currentStatus === 'open' ? 'closed' : 'open';
             
-            button.disabled = true;
-
-            try {
-                await apiRequest(`/api/candidates/${candidateId}/status`, 'PUT', { status: newStatus });
-                
-                button.dataset.currentStatus = newStatus;
-                button.textContent = newStatus === 'open' ? 'Close' : 'Open';
-                statusBadge.className = `status-badge status-${newStatus}`;
-                statusBadge.textContent = newStatus.toUpperCase();
-            } catch (error) {
-                alert(`Error updating status: ${error.message}`);
-            } finally {
-                button.disabled = false;
-            }
+            button.dataset.currentStatus = newStatus;
+            button.textContent = newStatus === 'open' ? 'Close' : 'Open';
+            statusBadge.className = `status-badge status-${newStatus}`;
+            statusBadge.textContent = newStatus.toUpperCase();
         }
     });
 
     saveBtn.addEventListener('click', async () => {
         const rows = tableBody.querySelectorAll('tr');
         const payload = {
-            orders: Array.from(rows).map(row => ({
+            candidates: Array.from(rows).map(row => ({
                 id: row.dataset.candidateId,
-                display_order: row.querySelector('.order-input').value
+                display_order: row.querySelector('.order-input').value,
+                status: row.querySelector('.btn-toggle-status').dataset.currentStatus
             }))
         };
 
         try {
             saveBtn.disabled = true;
             saveBtn.textContent = 'Saving...';
-            await apiRequest('/api/candidates/batch-update-order', 'PUT', payload);
-            alert('Display order saved successfully!');
-            loadCandidates(selectedContestId);
+            await apiRequest('/api/candidates/batch-update', 'PUT', payload);
+            alert('Changes saved successfully!');
+            // Reload candidates to reflect the new server-side sorting
+            loadCandidates(selectedContestId); 
         } catch (error) {
-            alert(`Error saving order: ${error.message}`);
+            alert(`Error saving changes: ${error.message}`);
         } finally {
             saveBtn.disabled = false;
             saveBtn.textContent = 'Save All Changes';
@@ -96,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function batchUpdateStatus(status) {
         if (!selectedContestId) return;
-        if (!confirm(`Are you sure you want to ${status.toUpperCase()} all candidates for this contest?`)) return;
+        if (!confirm(`Are you sure you want to ${status.toUpperCase()} all candidates for this contest? This will be saved immediately.`)) return;
         
         try {
             await apiRequest(`/api/contests/${selectedContestId}/candidates/status`, 'PUT', { status });

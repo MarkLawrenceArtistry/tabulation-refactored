@@ -342,7 +342,7 @@ app.put('/api/users/:id', authenticateToken, authorizeRoles('superadmin'), (req,
 app.get('/api/contests', authenticateToken, (req, res) => { db.all("SELECT * FROM contests", [], (err, rows) => res.json(rows)); });
 app.post('/api/contests', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => { const { name } = req.body; const imageUrl = req.file ? `/uploads/${req.file.filename}` : null; db.run('INSERT INTO contests (name, image_url) VALUES (?, ?)', [name, imageUrl], function(err) { res.status(201).json({ id: this.lastID, name, imageUrl }); }); });
 app.delete('/api/contests/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM contests WHERE id = ?', [req.params.id], (err) => res.sendStatus(204)); });
-app.get('/api/contests/:contestId/candidates', authenticateToken, (req, res) => { db.all("SELECT * FROM candidates WHERE contest_id = ? ORDER BY display_order ASC, candidate_number ASC", [req.params.contestId], (err, rows) => res.json(rows)); });
+app.get('/api/contests/:contestId/candidates', authenticateToken, (req, res) => { db.all("SELECT * FROM candidates WHERE contest_id = ? ORDER BY COALESCE(display_order, candidate_number) ASC, candidate_number ASC", [req.params.contestId], (err, rows) => res.json(rows)); });
 app.post('/api/candidates', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => {
     const { name, candidate_number, contest_id, branch, course, section, year_level } = req.body;
     if (!name || !candidate_number || !contest_id) return res.status(400).json({ message: "Missing required fields."});
@@ -355,50 +355,40 @@ app.post('/api/candidates', authenticateToken, authorizeRoles('admin', 'superadm
 });
 app.delete('/api/candidates/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM candidates WHERE id = ?', [req.params.id], () => res.sendStatus(204)); });
 app.get('/api/judging/contests/:contestId/candidates', authenticateToken, authorizeRoles('judge'), (req, res) => {
-    const sql = `SELECT * FROM candidates WHERE contest_id = ? AND status = 'open' ORDER BY display_order ASC, candidate_number ASC`;
+    const sql = `SELECT * FROM candidates WHERE contest_id = ? AND status = 'open' ORDER BY COALESCE(display_order, candidate_number) ASC, candidate_number ASC`;
     db.all(sql, [req.params.contestId], (err, rows) => {
         if (err) return res.status(500).json({ message: "DB Error fetching candidates for judging." });
         res.json(rows);
     });
 });
-
-app.put('/api/candidates/batch-update-order', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
-    const { orders } = req.body;
-    if (!orders || !Array.isArray(orders)) {
+app.put('/api/candidates/batch-update', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { candidates } = req.body;
+    if (!candidates || !Array.isArray(candidates) || candidates.length === 0) {
         return res.status(400).json({ message: 'Invalid payload.' });
     }
+
     db.serialize(() => {
         db.run("BEGIN TRANSACTION");
-        const stmt = db.prepare("UPDATE candidates SET display_order = ? WHERE id = ?");
-        orders.forEach(c => {
-            stmt.run(c.display_order, c.id);
+        const stmt = db.prepare("UPDATE candidates SET display_order = ?, status = ? WHERE id = ?");
+        candidates.forEach(c => {
+            const orderValue = c.display_order && c.display_order.trim() !== '' ? parseInt(c.display_order, 10) : null;
+            stmt.run(orderValue, c.status, c.id);
         });
         stmt.finalize(err => {
             if (err) {
                 db.run("ROLLBACK");
-                return res.status(500).json({ message: "Failed to update candidate order." });
+                return res.status(500).json({ message: "Failed to update candidates." });
             }
-            db.run("COMMIT", () => res.json({ message: "Candidate order updated successfully." }));
-        });
-    });
-});
-app.put('/api/candidates/:id/status', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
-    const { status } = req.body;
-    const { id } = req.params;
-
-    if (!['open', 'closed'].includes(status)) {
-        return res.status(400).json({ message: "Invalid status provided. Must be 'open' or 'closed'." });
-    }
-
-    db.get("SELECT contest_id FROM candidates WHERE id = ?", [id], (err, candidate) => {
-        if (err || !candidate) return res.status(404).json({ message: "Candidate not found." });
-
-        const sql = `UPDATE candidates SET status = ? WHERE id = ?`;
-        db.run(sql, [status, id], function(err) {
-            if (err) return res.status(500).json({ message: "DB Error updating candidate status." });
-            
-            io.emit('candidate_status_changed', { contest_id: candidate.contest_id });
-            res.json({ message: 'Candidate status updated successfully.' });
+            db.run("COMMIT", () => {
+                // After successfully saving, emit a real-time update
+                const firstCandidateId = candidates[0].id;
+                db.get("SELECT contest_id FROM candidates WHERE id = ?", [firstCandidateId], (err, row) => {
+                    if (row) {
+                        io.emit('candidate_status_changed', { contest_id: row.contest_id });
+                    }
+                });
+                res.json({ message: "Candidates updated successfully." });
+            });
         });
     });
 });
