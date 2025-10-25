@@ -5,28 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Judging Sheet</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/judging-sheet.css">
     <link rel="stylesheet" href="/css/success-modal.css">
 </head>
 <body>
 
      <div class="background-container"></div>
     <header>
-        <button id="back-to-dashboard" onclick="javascript:history.back()">Back to Segments</button>
+        <button id="back-to-dashboard">Back to Segments</button>
         <h1>Judging Sheet: <span id="segment-name-header">Loading...</span> <small id="segment-percentage-display"></small></h1>
-        <div class="header-spacer"></div>     
+        <div class="header-controls">
+            <button id="view-mode-toggle">View Card Mode</button>
+        </div>     
     </header>
 
     <main class="container">
         <form id="judging-form">
-            <!-- This container will hold the candidate cards -->
+            <div id="carousel-nav" class="carousel-nav-container">
+                <button type="button" id="prev-candidate-btn" class="carousel-nav-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10.8284 12.0007L15.7782 16.9504L14.364 18.3646L8 12.0007L14.364 5.63672L15.7782 7.05093L10.8284 12.0007Z"></path></svg>
+                    <span>Go back</span>
+                </button>
+                <div id="carousel-status">Loading...</div>
+                <button type="button" id="next-candidate-btn" class="carousel-nav-btn">
+                    <span>Next Candidate</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13.1714 12.0007L8.22168 7.05093L9.63589 5.63672L15.9999 12.0007L9.63589 18.3646L8.22168 16.9504L13.1714 12.0007Z"></path></svg>
+                </button>
+            </div>
+
             <div id="judging-cards-container">
                 <p>Loading candidates...</p>
             </div>
+            
             <button type="submit" id="submit-scores-btn">Submit All Scores</button>
         </form>
     </main>
 
-    <!-- Success Modal -->
     <div class="modal-overlay" aria-hidden="true">
       <div class="modal">
         <img src="./assets/check-animation.gif" alt="Success" class="success-gif" />
@@ -37,7 +51,7 @@
     </div>
 
 
-    <script src="/socket.io/socket.io.js"></script> <!-- ADD THIS LINE -->
+    <script src="/socket.io/socket.io.js"></script>
     <script src="/js/session-tracker.js"></script> 
     <script src="/js/success-modal.js"></script>
     <script src="/js/auth.js"></script>

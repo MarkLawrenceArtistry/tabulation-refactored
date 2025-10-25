@@ -3,21 +3,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     const contestId = urlParams.get('contest');
     const segmentId = urlParams.get('segment');
 
-    const user = JSON.parse(localStorage.getItem('user'))
+    const user = JSON.parse(localStorage.getItem('user'));
     const cacheKey = `cachedScores_judge_${user.id}_segment_${segmentId}`;
+
+    const form = document.getElementById('judging-form');
+    const cardsContainer = document.getElementById('judging-cards-container');
+    const viewModeToggle = document.getElementById('view-mode-toggle');
+    const prevBtn = document.getElementById('prev-candidate-btn');
+    const nextBtn = document.getElementById('next-candidate-btn');
+    const carouselStatus = document.getElementById('carousel-status');
+
+    let currentViewMode = 'carousel';
+    let currentCandidateIndex = 0;
+    let candidates = [];
+    let criteria = [];
 
     if (!contestId || !segmentId) {
         alert('Missing contest or segment ID.');
         window.location.href = '/judge-dashboard.html';
         return;
     }
-
-    document.getElementById('back-to-dashboard').addEventListener('click', () => {
+    
+    document.getElementById('back-to-dashboard').onclick = () => {
         window.location.href = `/judge-segments.html?contest=${contestId}`;
-    });
+    };
 
     try {
-        const [criteria, candidates] = await Promise.all([
+        await fetchData();
+        renderUI();
+        loadScoresFromCache(cacheKey);
+        setupEventListeners();
+    } catch (error) {
+        console.error('Failed to initialize judging sheet:', error);
+        window.location.href = `/judge-segments.html?contest=${contestId}`;
+    }
+
+    async function fetchData() {
+        [criteria, candidates] = await Promise.all([
             apiRequest(`/api/judging/segments/${segmentId}/criteria`),
             apiRequest(`/api/contests/${contestId}/candidates`)
         ]);
@@ -27,108 +49,133 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         document.getElementById('segment-name-header').textContent = currentSegment.name;
         document.getElementById('segment-percentage-display').textContent = `(${currentSegment.percentage}% Overall)`; 
-
-        populateCandidateCards(criteria, candidates);
-
-        // --- ADD THIS LINE ---
-        // Load any cached scores after the inputs have been created
-        loadScoresFromCache(cacheKey); 
-        
-        setupFormSubmission(contestId, cacheKey); // Pass cacheKey to the setup function
-
-    } catch (error) {
-        // The error message from the new api.js will be more descriptive now
-        console.error('Failed to initialize judging sheet:', error);
-        window.location.href = `/judge-segments.html?contest=${contestId}`;
-    }
-});
-
-function populateCandidateCards(criteria, candidates) {
-    const container = document.getElementById('judging-cards-container');
-    container.innerHTML = ''; // Clear previous data
-
-    if (candidates.length === 0) {
-        container.innerHTML = '<p>There are no candidates for this segment.</p>';
-        return;
     }
 
-    candidates.forEach(candidate => {
-        const card = document.createElement('div');
-        card.className = 'candidate-judging-card';
+    function renderUI() {
+        populateAllCandidateCards();
+        updateViewMode();
+    }
+    
+    function populateAllCandidateCards() {
+        cardsContainer.innerHTML = '';
+        if (candidates.length === 0) {
+            cardsContainer.innerHTML = '<p>There are no candidates for this segment.</p>';
+            return;
+        }
 
-        // Build the list of criteria inputs for this specific candidate
-        let criteriaHtml = '';
-        criteria.forEach(c => {
-            criteriaHtml += `
-                <div class="criterion-item">
-                    <label for="score-${candidate.id}-${c.id}">${c.name} (${c.max_score}%)</label>
-                    <input type="number" id="score-${candidate.id}-${c.id}" class="score-input"
-                        min="0" max="${c.max_score}" step="0.01" placeholder="0-${c.max_score}" required
-                        data-candidate-id="${candidate.id}" data-criterion-id="${c.id}">
+        candidates.forEach(candidate => {
+            const card = document.createElement('div');
+            card.className = 'candidate-judging-card';
+            card.dataset.candidateId = candidate.id;
+
+            let criteriaHtml = '';
+            criteria.forEach(c => {
+                criteriaHtml += `
+                    <div class="criterion-item">
+                        <label for="score-${candidate.id}-${c.id}">${c.name} (${c.max_score}%)</label>
+                        <input type="number" id="score-${candidate.id}-${c.id}" class="score-input"
+                            min="0" max="${c.max_score}" step="0.01" placeholder="0-${c.max_score}" required
+                            data-candidate-id="${candidate.id}" data-criterion-id="${c.id}">
+                    </div>
+                `;
+            });
+
+            const imageUrl = candidate.image_url || '/images/placeholder.png';
+            const details = [candidate.branch, candidate.course, candidate.section, candidate.year_level].filter(Boolean).join(' - ');
+
+            card.innerHTML = `
+                <img src="${imageUrl}" alt="${candidate.name}" class="card-image">
+                <div class="card-content">
+                    <div class="candidate-info">
+                        <h3>#${candidate.candidate_number} ${candidate.name}</h3>
+                        <p>${details || 'No additional details'}</p>
+                    </div>
+                    <div class="criteria-list">
+                        ${criteriaHtml}
+                    </div>
                 </div>
             `;
+            cardsContainer.appendChild(card);
+        });
+    }
+
+    function updateViewMode() {
+        if (currentViewMode === 'carousel') {
+            document.body.classList.add('view-carousel');
+            document.body.classList.remove('view-card');
+            viewModeToggle.textContent = 'View Card Mode';
+            showCurrentCandidateInCarousel();
+        } else {
+            document.body.classList.add('view-card');
+            document.body.classList.remove('view-carousel');
+            viewModeToggle.textContent = 'View Carousel Mode';
+            const allCards = cardsContainer.querySelectorAll('.candidate-judging-card');
+            allCards.forEach(c => c.classList.remove('active'));
+        }
+    }
+
+    function showCurrentCandidateInCarousel() {
+        const allCards = cardsContainer.querySelectorAll('.candidate-judging-card');
+        allCards.forEach((card, index) => {
+            if (index === currentCandidateIndex) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
         });
 
-        // onKeyPress="if(this.value.length==3) return false;
+        carouselStatus.textContent = `Candidate ${currentCandidateIndex + 1} of ${candidates.length}`;
+        prevBtn.disabled = currentCandidateIndex === 0;
+        nextBtn.disabled = currentCandidateIndex === candidates.length - 1;
+    }
 
-        // --- NEW STRUCTURE ---
-        // Combine all details into the final card HTML, matching the new CSS
-        const imageUrl = candidate.image_url || '/images/placeholder.png';
-        const details = [candidate.branch, candidate.course, candidate.section, candidate.year_level].filter(Boolean).join(' - ');
+    function setupEventListeners() {
+        viewModeToggle.addEventListener('click', () => {
+            currentViewMode = currentViewMode === 'carousel' ? 'card' : 'carousel';
+            updateViewMode();
+        });
 
-        card.innerHTML = `
-            <img src="${imageUrl}" alt="${candidate.name}" class="card-image">
-            <div class="card-content">
-                <div class="candidate-info">
-                    <h3>#${candidate.candidate_number} ${candidate.name}</h3>
-                    <p>${details || 'No additional details'}</p>
-                </div>
-                <div class="criteria-list">
-                    ${criteriaHtml}
-                </div>
-            </div>
-        `;
+        nextBtn.addEventListener('click', () => {
+            if (currentCandidateIndex < candidates.length - 1) {
+                currentCandidateIndex++;
+                showCurrentCandidateInCarousel();
+            }
+        });
 
-        container.appendChild(card);
-    });
+        prevBtn.addEventListener('click', () => {
+            if (currentCandidateIndex > 0) {
+                currentCandidateIndex--;
+                showCurrentCandidateInCarousel();
+            }
+        });
 
-    container.addEventListener('input', () => saveScoresToCache(`cachedScores_judge_${JSON.parse(localStorage.getItem('user')).id}_segment_${new URLSearchParams(window.location.search).get('segment')}`));
-}
+        form.addEventListener('submit', (e) => handleFormSubmission(e, contestId, cacheKey));
+        cardsContainer.addEventListener('input', () => saveScoresToCache(cacheKey));
+    }
 
-function setupFormSubmission(contestId, cacheKey) {
-    const form = document.getElementById('judging-form');
-    form.addEventListener('submit', async (e) => {
+    async function handleFormSubmission(e, contestId, cacheKey) {
         e.preventDefault();
+        const isConfirmed = confirm("Are you sure you want to submit all scores for this segment? This action cannot be undone.");
+        if (!isConfirmed) return;
 
-        const isConfirmed = confirm("Are you sure you want to submit all scores for this segment?\n\nThis action cannot be undone.");
-        if (!isConfirmed) {
-            return; // Stop the function if the user clicks "Cancel"
-        }
-        
         const submitBtn = document.getElementById('submit-scores-btn');
         submitBtn.disabled = true;
         submitBtn.textContent = 'Submitting...';
-
-        // --- NEW: Prevent back button immediately on submit ---
-        // This stops the user from navigating back while the request is in flight.
         history.pushState(null, null, location.href);
-        window.onpopstate = function () {
-            history.go(1);
-        };
+        window.onpopstate = () => history.go(1);
 
         const scoreInputs = document.querySelectorAll('.score-input');
         const scoresPayload = [];
         let isValid = true;
-
+        
         scoreInputs.forEach(input => {
             const score = parseFloat(input.value);
             const maxScore = parseFloat(input.max);
-
             if (input.value.trim() === '' || isNaN(score) || score < 0 || score > maxScore) {
-                input.style.borderColor = 'red'; 
+                input.style.borderColor = 'red';
                 isValid = false;
-            } else { 
-                input.style.borderColor = ''; 
+            } else {
+                input.style.borderColor = '';
             }
             scoresPayload.push({
                 candidate_id: input.dataset.candidateId,
@@ -138,72 +185,56 @@ function setupFormSubmission(contestId, cacheKey) {
         });
 
         if (!isValid) {
-            alert('Please fill in all fields and correct invalid scores (0-100).');
+            alert('Please fill in all fields and correct invalid scores.');
             submitBtn.disabled = false;
             submitBtn.textContent = 'Submit All Scores';
-            // Allow the back button again if validation fails
-            window.onpopstate = null; 
+            window.onpopstate = null;
             return;
         }
 
         try {
             await apiRequest('/api/judging/scores', 'POST', { scores: scoresPayload });
-            
             clearScoresFromCache(cacheKey);
-
-            // On success, the modal will handle the redirect.
             showSuccessModal(
                 "Scores Recorded!",
                 "Your scores have been submitted. You will now be returned to the segments list.",
                 `/judge-segments.html?contest=${contestId}`
             );
-
         } catch (error) {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Submit All Scores';
-            window.onpopstate = null; // Allow back navigation on any error
-
-            // --- THE FIX IS HERE ---
-            // Priority 1: Check for a network connection error.
+            window.onpopstate = null;
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-                // The global banner from api.js is already handling this.
-                // We do nothing here to avoid showing a second alert/modal.
-                return; 
+                return;
             }
-            
-            // Priority 2: Check for the specific "already submitted" error.
             if (error.message.includes("already submitted")) {
                 showSuccessModal(
                     "Submission Blocked",
-                    "You have already submitted scores for this segment. Please return to the dashboard.",
+                    "You have already submitted scores for this segment.",
                     `/judge-segments.html?contest=${contestId}`,
                     `assets/error-icon.png`
                 );
-            } 
-            // Priority 3: Fallback for any other unexpected server errors.
-            else {
+            } else {
                 alert(`An unexpected server error occurred: ${error.message}`);
             }
         }
-    });
-}
+    }
+});
 
 function saveScoresToCache(cacheKey) {
     const scoreInputs = document.querySelectorAll('.score-input');
     const scoresToCache = [];
     scoreInputs.forEach(input => {
-        if (input.value.trim() !== '') { // Only save if there is a value
+        if (input.value.trim() !== '') {
             scoresToCache.push({
-                id: input.id, // Use the unique element ID for easy mapping
+                id: input.id,
                 value: input.value
             });
         }
     });
-
     if (scoresToCache.length > 0) {
         localStorage.setItem(cacheKey, JSON.stringify(scoresToCache));
     } else {
-        // If all fields are empty, clear the cache
         localStorage.removeItem(cacheKey);
     }
 }
@@ -223,7 +254,6 @@ function loadScoresFromCache(cacheKey) {
             });
             if (restoredCount > 0) {
                 console.log(`Restored ${restoredCount} scores from cache.`);
-                // Optional: Add a small, non-intrusive notification for the user
                 const notification = document.createElement('div');
                 notification.textContent = 'Restored your unsaved scores.';
                 notification.style.cssText = 'position:fixed; bottom:20px; right:20px; background-color:#10b981; color:white; padding:10px 15px; border-radius:5px; z-index:1000;';
@@ -232,7 +262,6 @@ function loadScoresFromCache(cacheKey) {
             }
         } catch (e) {
             console.error('Failed to parse cached scores:', e);
-            // Clear corrupted data
             localStorage.removeItem(cacheKey);
         }
     }

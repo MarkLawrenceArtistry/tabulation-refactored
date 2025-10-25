@@ -1,0 +1,101 @@
+header {
+    justify-content: space-between;
+}
+header h1 {
+    flex-grow: 1;
+    text-align: center;
+}
+header #back-to-dashboard, 
+header .header-controls {
+    flex-basis: 200px;
+}
+header #back-to-dashboard {
+    justify-self: flex-start;
+}
+header .header-controls {
+    display: flex;
+    justify-content: flex-end;
+}
+#view-mode-toggle {
+    background-color: rgba(255,255,255,0.1);
+    color: var(--text-dark-color);
+    border: 1px solid var(--border-color);
+}
+#view-mode-toggle:hover {
+    background-color: rgba(255,255,255,0.2);
+}
+
+.carousel-nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto 2rem auto;
+    padding: 1rem;
+    background-color: var(--form-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+}
+
+.carousel-nav-btn {
+    background: transparent;
+    color: var(--text-dark-color);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    padding: 0.8rem 1.5rem;
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+}
+.carousel-nav-btn:hover:not(:disabled) {
+    background-color: var(--primary-color);
+    color: var(--dark-color);
+}
+.carousel-nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.carousel-nav-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+#carousel-status {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.view-card #judging-cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+}
+.view-card #carousel-nav {
+    display: none;
+}
+
+.view-carousel #judging-cards-container {
+    display: flex;
+    justify-content: center;
+}
+.view-carousel .candidate-judging-card {
+    display: none;
+    width: 100%;
+    max-width: 450px;
+    animation: fadeIn 0.5s ease;
+}
+.view-carousel .candidate-judging-card.active {
+    display: flex;
+}
+.view-carousel #carousel-nav {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
