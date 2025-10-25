@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Users</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-layout.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <aside id="admin-sidebar-container"></aside>
+        <main class="admin-main-content">
+            <h1>Manage Users</h1>
+            <div class="grid-container">
+                <div class="card">
+                    <h2>Add User</h2>
+                    <form id="add-user-form" class="vertical-form">
+                        <input type="text" name="username" placeholder="Username" required>
+                        <input type="password" name="password" placeholder="Password" required>
+                        <select name="role" required>
+                            <option value="" disabled selected>Select Role</option>
+                            <option value="admin">Admin</option>
+                            <option value="judge">Judge</option>
+                        </select>
+                        <button type="submit">Add User</button>
+                    </form>
+                </div>
+                <div class="card" style="grid-column: span 2;">
+                    <h2>Existing Users</h2>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Role</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <tr><td colspan="3">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="edit-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="edit-modal-title">Edit Item</h2>
+                <button id="close-modal-btn" class="close-btn">&times;</button>
+            </div>
+            <form id="edit-form">
+                <div id="edit-form-fields"></div>
+                <div class="form-actions">
+                    <button type="submit">Save Changes</button>
+                    <button type="button" id="cancel-edit-btn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script src="/js/admin-sidebar.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/manage-users.js"></script>
+</body>
+</html>

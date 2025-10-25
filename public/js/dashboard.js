@@ -9,12 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('username-display').textContent = user.username;
     document.getElementById('role-display').textContent = user.role;
-    
-    // Show user management for superadmin
-    if (user.role === 'superadmin') {
-        document.getElementById('manage-users-section').classList.remove('hidden');
-        loadUsers();
-    }
 
     loadContests();
 
@@ -26,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Main form submissions
     document.getElementById('add-contest-form').addEventListener('submit', handleAddContest);
-    document.getElementById('add-user-form')?.addEventListener('submit', handleAddUser);
     document.getElementById('add-candidate-form').addEventListener('submit', handleAddCandidate);
     document.getElementById('add-segment-form').addEventListener('submit', handleAddSegment);
     document.getElementById('add-criteria-form').addEventListener('submit', handleAddCriterion);
@@ -61,22 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="actions-cell">
                         <button class="btn-edit" data-id="${contest.id}" data-type="contest">Edit</button>
                         <button class="btn-delete" data-id="${contest.id}" data-type="contest" data-name="${contest.name}">Delete</button>
-                    </div>
-                </li>`;
-        });
-    }
-
-    async function loadUsers() {
-        const users = await apiRequest('/api/users');
-        const list = document.getElementById('users-list');
-        list.innerHTML = '';
-        users.forEach(user => {
-            list.innerHTML += `
-                <li class="user-list-item">
-                    <span>${user.username} (${user.role})</span>
-                    <div class="actions-cell">
-                        <button class="btn-edit" data-id="${user.id}" data-type="user">Edit</button>
-                        <button class="btn-delete" data-id="${user.id}" data-type="user" data-name="${user.username}">Delete</button>
                     </div>
                 </li>`;
         });
@@ -184,15 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await apiRequest('/api/contests', 'POST', formData);
         e.target.reset();
         loadContests();
-    }
-
-    async function handleAddUser(e) {
-        e.preventDefault();
-        const form = e.target;
-        const body = { username: form.elements['new-username'].value, password: form.elements['new-password'].value, role: form.elements['new-role'].value };
-        await apiRequest('/api/users', 'POST', body);
-        form.reset();
-        loadUsers();
     }
     
     async function handleAddCandidate(e) {

@@ -1,13 +1,10 @@
-/* =================================================== */
-/* FILE: public/js/admin-sidebar.js (MODIFIED)       */
-/* =================================================== */
-
 (function() {
     function renderAdminSidebar() {
         const sidebarContainer = document.getElementById('admin-sidebar-container');
         if (!sidebarContainer) return;
 
         const currentPage = window.location.pathname;
+        const user = JSON.parse(localStorage.getItem('user'));
 
         const navLinks = [
             { href: '/dashboard.html', text: 'Dashboard' },
@@ -21,13 +18,16 @@
             { href: '/special-scores.html', text: 'Admin-Scored Segments' }
         ];
 
+        if (user && user.role === 'superadmin') {
+            navLinks.splice(1, 0, { href: '/manage-users.html', text: 'Manage Users' });
+        }
+
         const linksHtml = navLinks.map(link => `
             <a href="${link.href}" style="text-align: left;" class="${currentPage.endsWith(link.href) ? 'active' : ''}">
                 ${link.text}
             </a>
         `).join('');
 
-        // The complete sidebar HTML structure, now with logo and footer
         sidebarContainer.innerHTML = `
             <nav class="admin-sidebar">
                 <div class="sidebar-main-nav">
@@ -46,7 +46,6 @@
             </nav>
         `;
 
-        // The logout logic is now self-contained within the sidebar component
         const logoutBtn = document.getElementById('logout-button');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
