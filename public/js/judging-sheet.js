@@ -63,11 +63,13 @@ function populateCandidateCards(criteria, candidates) {
                 <div class="criterion-item">
                     <label for="score-${candidate.id}-${c.id}">${c.name} (${c.max_score}%)</label>
                     <input type="number" id="score-${candidate.id}-${c.id}" class="score-input"
-                        min="0" max="100" placeholder="0-100" required
-                        data-candidate-id="${candidate.id}" data-criterion-id="${c.id}" onKeyPress="if(this.value.length==3) return false;">
+                        min="0" max="${c.max_score}" step="0.01" placeholder="0-${c.max_score}" required
+                        data-candidate-id="${candidate.id}" data-criterion-id="${c.id}">
                 </div>
             `;
         });
+
+        // onKeyPress="if(this.value.length==3) return false;
 
         // --- NEW STRUCTURE ---
         // Combine all details into the final card HTML, matching the new CSS
@@ -120,8 +122,9 @@ function setupFormSubmission(contestId, cacheKey) {
 
         scoreInputs.forEach(input => {
             const score = parseFloat(input.value);
-            // Updated validation to check for empty inputs too
-            if (input.value.trim() === '' || isNaN(score) || score < 0 || score > 100) {
+            const maxScore = parseFloat(input.max);
+
+            if (input.value.trim() === '' || isNaN(score) || score < 0 || score > maxScore) {
                 input.style.borderColor = 'red'; 
                 isValid = false;
             } else { 

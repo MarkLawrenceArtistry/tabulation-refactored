@@ -77,12 +77,12 @@ const authorizeRoles = (...allowedRoles) => { return (req, res, next) => { if (!
 const calculateAndEmitResults = () => {
     const sql = `
         WITH JudgeRawSegmentScores AS (
-            -- Step 1: For each judge, SUM the weighted criteria scores for each candidate in a segment.
+            -- Step 1: For each judge, SUM the criteria scores for each candidate in a segment.
             SELECT 
                 sc.judge_id,
                 sc.candidate_id,
                 s.id as segment_id,
-                SUM(sc.score * (cr.max_score / 100.0)) as total_segment_score
+                SUM(sc.score) as total_segment_score
             FROM scores sc
             JOIN criteria cr ON sc.criterion_id = cr.id
             JOIN segments s ON cr.segment_id = s.id
@@ -761,7 +761,7 @@ app.get('/api/reports/full-tabulation', authenticateToken, authorizeRoles('admin
             WITH JudgeRawSegmentScores AS (
                 SELECT 
                     sc.judge_id, sc.candidate_id, s.id as segment_id,
-                    SUM(sc.score * (cr.max_score / 100.0)) as total_segment_score
+                    SUM(sc.score) as total_segment_score
                 FROM scores sc
                 JOIN criteria cr ON sc.criterion_id = cr.id
                 JOIN segments s ON cr.segment_id = s.id

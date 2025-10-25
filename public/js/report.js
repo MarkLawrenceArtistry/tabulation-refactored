@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         });
                         const averageScore = judgeCount > 0 ? (totalScore / judgeCount) : 0;
-                        calculatedSegmentScore += averageScore * (criterion.max_score / 100.0);
+                        calculatedSegmentScore += averageScore;
                     });
                     segmentScore = calculatedSegmentScore;
                 }
@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if(score !== undefined) { total += score; count++; }
                         });
                         const averageScore = count > 0 ? (total / count) : 0;
-                        calculatedSegmentScore += averageScore * (criterion.max_score / 100.0);
+                        calculatedSegmentScore += averageScore;
                     });
                     segmentScore = calculatedSegmentScore;
                 }
