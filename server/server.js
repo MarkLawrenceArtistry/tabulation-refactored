@@ -461,9 +461,12 @@ app.get('/api/judging/segments/:segmentId/my-scores', authenticateToken, authori
     const sql = `
         SELECT
             s.score,
+            c.id as candidate_id,
             c.name as candidate_name,
             c.candidate_number,
-            cr.name as criterion_name
+            c.image_url,
+            cr.name as criterion_name,
+            cr.max_score
         FROM scores s
         JOIN candidates c ON s.candidate_id = c.id
         JOIN criteria cr ON s.criterion_id = cr.id
