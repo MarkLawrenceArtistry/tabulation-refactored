@@ -342,7 +342,7 @@ app.put('/api/users/:id', authenticateToken, authorizeRoles('superadmin'), (req,
 app.get('/api/contests', authenticateToken, (req, res) => { db.all("SELECT * FROM contests", [], (err, rows) => res.json(rows)); });
 app.post('/api/contests', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => { const { name } = req.body; const imageUrl = req.file ? `/uploads/${req.file.filename}` : null; db.run('INSERT INTO contests (name, image_url) VALUES (?, ?)', [name, imageUrl], function(err) { res.status(201).json({ id: this.lastID, name, imageUrl }); }); });
 app.delete('/api/contests/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM contests WHERE id = ?', [req.params.id], (err) => res.sendStatus(204)); });
-app.get('/api/contests/:contestId/candidates', authenticateToken, (req, res) => { db.all("SELECT * FROM candidates WHERE contest_id = ?", [req.params.contestId], (err, rows) => res.json(rows)); });
+app.get('/api/contests/:contestId/candidates', authenticateToken, (req, res) => { db.all("SELECT * FROM candidates WHERE contest_id = ? ORDER BY display_order ASC, candidate_number ASC", [req.params.contestId], (err, rows) => res.json(rows)); });
 app.post('/api/candidates', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => {
     const { name, candidate_number, contest_id, branch, course, section, year_level } = req.body;
     if (!name || !candidate_number || !contest_id) return res.status(400).json({ message: "Missing required fields."});
@@ -354,6 +354,68 @@ app.post('/api/candidates', authenticateToken, authorizeRoles('admin', 'superadm
     });
 });
 app.delete('/api/candidates/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM candidates WHERE id = ?', [req.params.id], () => res.sendStatus(204)); });
+app.get('/api/judging/contests/:contestId/candidates', authenticateToken, authorizeRoles('judge'), (req, res) => {
+    const sql = `SELECT * FROM candidates WHERE contest_id = ? AND status = 'open' ORDER BY display_order ASC, candidate_number ASC`;
+    db.all(sql, [req.params.contestId], (err, rows) => {
+        if (err) return res.status(500).json({ message: "DB Error fetching candidates for judging." });
+        res.json(rows);
+    });
+});
+
+app.put('/api/candidates/batch-update-order', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { orders } = req.body;
+    if (!orders || !Array.isArray(orders)) {
+        return res.status(400).json({ message: 'Invalid payload.' });
+    }
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+        const stmt = db.prepare("UPDATE candidates SET display_order = ? WHERE id = ?");
+        orders.forEach(c => {
+            stmt.run(c.display_order, c.id);
+        });
+        stmt.finalize(err => {
+            if (err) {
+                db.run("ROLLBACK");
+                return res.status(500).json({ message: "Failed to update candidate order." });
+            }
+            db.run("COMMIT", () => res.json({ message: "Candidate order updated successfully." }));
+        });
+    });
+});
+app.put('/api/candidates/:id/status', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { status } = req.body;
+    const { id } = req.params;
+
+    if (!['open', 'closed'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status provided. Must be 'open' or 'closed'." });
+    }
+
+    db.get("SELECT contest_id FROM candidates WHERE id = ?", [id], (err, candidate) => {
+        if (err || !candidate) return res.status(404).json({ message: "Candidate not found." });
+
+        const sql = `UPDATE candidates SET status = ? WHERE id = ?`;
+        db.run(sql, [status, id], function(err) {
+            if (err) return res.status(500).json({ message: "DB Error updating candidate status." });
+            
+            io.emit('candidate_status_changed', { contest_id: candidate.contest_id });
+            res.json({ message: 'Candidate status updated successfully.' });
+        });
+    });
+});
+app.put('/api/contests/:contestId/candidates/status', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const { status } = req.body;
+    const contestId = req.params.contestId;
+    if (!['open', 'closed'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status." });
+    }
+    const sql = `UPDATE candidates SET status = ? WHERE contest_id = ?`;
+    db.run(sql, [status, contestId], function (err) {
+        if (err) return res.status(500).json({ message: "DB Error updating statuses." });
+        
+        io.emit('candidate_status_changed', { contest_id: contestId });
+        res.json({ message: `All candidates set to ${status}.` });
+    });
+});
 app.get('/api/contests/:contestId/segments', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.all("SELECT * FROM segments WHERE contest_id = ?", [req.params.contestId], (err, rows) => res.json(rows)); });
 app.post('/api/segments', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { const { name, percentage, contest_id, type } = req.body; db.run('INSERT INTO segments (name, percentage, contest_id, type) VALUES (?, ?, ?, ?)', [name, percentage, contest_id, type || 'judge'], function(err) { if(err) return res.status(500).json({message: "DB error"}); res.status(201).json({ id: this.lastID }); }); });
 app.delete('/api/segments/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM segments WHERE id = ?', [req.params.id], () => res.sendStatus(204)); });
@@ -436,22 +498,41 @@ createGetByIdRoute('criteria');
 // --- JUDGING FLOW (WITH NEW ROUTE) ---
 app.get('/api/judging/contests', authenticateToken, authorizeRoles('judge'), (req, res) => {const sql = `SELECT DISTINCT c.* FROM contests c JOIN segments s ON c.id = s.contest_id WHERE s.type = 'judge' AND s.id NOT IN (SELECT cr.segment_id FROM scores sc JOIN criteria cr ON sc.criterion_id = cr.id WHERE sc.judge_id = ?)`; db.all(sql, [req.user.id], (err, rows) => { if (err) return res.status(500).json({ message: "DB error" }); res.json(rows); }); });
 app.get('/api/judging/contests/:contestId/segments', authenticateToken, authorizeRoles('judge'), (req, res) => {
+    const contestId = req.params.contestId;
+    const judgeId = req.user.id;
+
     const sql = `
-        SELECT 
-            s.*,
-            CASE WHEN judged_segments.segment_id IS NOT NULL THEN 1 ELSE 0 END as is_judged
-        FROM segments s
-        LEFT JOIN (
-            SELECT DISTINCT cr.segment_id
+        WITH
+        OpenCandidates AS (
+            SELECT id FROM candidates WHERE contest_id = ? AND status = 'open'
+        ),
+        ScoredCandidatesPerSegment AS (
+            SELECT
+                cr.segment_id,
+                COUNT(DISTINCT sc.candidate_id) as scored_count
             FROM scores sc
             JOIN criteria cr ON sc.criterion_id = cr.id
-            WHERE sc.judge_id = ?
-        ) as judged_segments ON s.id = judged_segments.segment_id
+            WHERE sc.judge_id = ? AND sc.candidate_id IN (SELECT id FROM OpenCandidates)
+            GROUP BY cr.segment_id
+        ),
+        OpenCandidateCount AS (
+            SELECT COUNT(*) as total_open FROM OpenCandidates
+        )
+        SELECT
+            s.*,
+            CASE
+                WHEN IFNULL(scps.scored_count, 0) = occ.total_open AND occ.total_open > 0 THEN 1
+                ELSE 0
+            END as is_judged
+        FROM segments s
+        CROSS JOIN OpenCandidateCount occ
+        LEFT JOIN ScoredCandidatesPerSegment scps ON s.id = scps.segment_id
         WHERE s.contest_id = ? AND s.type = 'judge' AND s.status = 'open'
     `;
-    db.all(sql, [req.user.id, req.params.contestId], (err, rows) => {
+    
+    db.all(sql, [contestId, judgeId, contestId], (err, rows) => {
         if (err) {
-            console.error("Error fetching all segments for judge:", err.message);
+            console.error("Error fetching dynamic segment status for judge:", err.message);
             return res.status(500).json({ message: "DB error" });
         }
         res.json(rows);
@@ -470,7 +551,7 @@ app.get('/api/judging/segments/:segmentId/my-scores', authenticateToken, authori
         FROM scores s
         JOIN candidates c ON s.candidate_id = c.id
         JOIN criteria cr ON s.criterion_id = cr.id
-        WHERE cr.segment_id = ? AND s.judge_id = ?
+        WHERE cr.segment_id = ? AND s.judge_id = ? AND c.status = 'open'
         ORDER BY c.candidate_number, cr.id
     `;
     db.all(sql, [req.params.segmentId, req.user.id], (err, rows) => {

@@ -23,6 +23,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '/judge-dashboard.html';
         return;
     }
+
+    socket.on('candidate_status_changed', async (data) => {
+        if (data.contest_id == contestId) {
+            console.log('Candidate status changed, intelligently refreshing list...');
+
+            const currentCandidateId = candidates[currentCandidateIndex]?.id;
+
+            await fetchData();
+
+            let newIndex = 0;
+            if (currentCandidateId) {
+                const foundIndex = candidates.findIndex(c => c.id === currentCandidateId);
+                if (foundIndex !== -1) {
+                    newIndex = foundIndex;
+                }
+            }
+            currentCandidateIndex = newIndex;
+
+            renderUI();
+            
+            loadScoresFromCache(cacheKey);
+        }
+    });
     
     document.getElementById('back-to-dashboard').onclick = () => {
         window.location.href = `/judge-segments.html?contest=${contestId}`;
@@ -41,7 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function fetchData() {
         [criteria, candidates] = await Promise.all([
             apiRequest(`/api/judging/segments/${segmentId}/criteria`),
-            apiRequest(`/api/contests/${contestId}/candidates`)
+            apiRequest(`/api/judging/contests/${contestId}/candidates`)
         ]);
         
         const segmentsForContest = await apiRequest(`/api/judging/contests/${contestId}/segments`);
@@ -155,7 +178,52 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function handleFormSubmission(e, contestId, cacheKey) {
         e.preventDefault();
-        const isConfirmed = confirm("Are you sure you want to submit all scores for this segment? This action cannot be undone.");
+
+        const scoreInputs = document.querySelectorAll('.score-input');
+        
+        let hasFormatErrors = false;
+        scoreInputs.forEach(input => {
+            const score = parseFloat(input.value);
+            const maxScore = parseFloat(input.max);
+            if (input.value.trim() !== '' && (isNaN(score) || score < 0 || score > maxScore)) {
+                input.style.borderColor = 'red';
+                hasFormatErrors = true;
+            } else {
+                input.style.borderColor = '';
+            }
+        });
+
+        if (hasFormatErrors) {
+            alert('Please correct invalid scores (must be a number between 0 and the max value).');
+            return;
+        }
+
+        const incompleteCandidates = [];
+        candidates.forEach((candidate, index) => {
+            let isCandidateComplete = true;
+            criteria.forEach(criterion => {
+                const input = document.getElementById(`score-${candidate.id}-${criterion.id}`);
+                if (!input || input.value.trim() === '') {
+                    isCandidateComplete = false;
+                }
+            });
+            if (!isCandidateComplete) {
+                incompleteCandidates.push({ ...candidate, index });
+            }
+        });
+
+        if (incompleteCandidates.length > 0) {
+            const names = incompleteCandidates.map(c => `#${c.number} ${c.name}`).join('\n');
+            alert(`Please complete the scores for the following candidate(s):\n\n${names}`);
+            
+            if (currentViewMode === 'carousel' && incompleteCandidates.length > 0) {
+                currentCandidateIndex = incompleteCandidates[0].index;
+                showCurrentCandidateInCarousel();
+            }
+            return;
+        }
+        
+        const isConfirmed = confirm("All scores are complete. Are you sure you want to submit? This action cannot be undone.");
         if (!isConfirmed) return;
 
         const submitBtn = document.getElementById('submit-scores-btn');
@@ -163,57 +231,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         submitBtn.textContent = 'Submitting...';
         history.pushState(null, null, location.href);
         window.onpopstate = () => history.go(1);
-
-        const scoreInputs = document.querySelectorAll('.score-input');
-        const scoresPayload = [];
-        let isValid = true;
         
-        scoreInputs.forEach(input => {
-            const score = parseFloat(input.value);
-            const maxScore = parseFloat(input.max);
-            if (input.value.trim() === '' || isNaN(score) || score < 0 || score > maxScore) {
-                input.style.borderColor = 'red';
-                isValid = false;
-            } else {
-                input.style.borderColor = '';
-            }
-            scoresPayload.push({
-                candidate_id: input.dataset.candidateId,
-                criterion_id: input.dataset.criterionId,
-                score: score
-            });
-        });
-
-        if (!isValid) {
-            alert('Please fill in all fields and correct invalid scores.');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit All Scores';
-            window.onpopstate = null;
-            return;
-        }
+        const scoresPayload = Array.from(scoreInputs).map(input => ({
+            candidate_id: input.dataset.candidateId,
+            criterion_id: input.dataset.criterionId,
+            score: parseFloat(input.value)
+        }));
 
         try {
             await apiRequest('/api/judging/scores', 'POST', { scores: scoresPayload });
             clearScoresFromCache(cacheKey);
             showSuccessModal(
                 "Scores Recorded!",
-                "Your scores have been submitted. You will now be returned to the segments list.",
+                "Your scores have been submitted and locked.",
                 `/judge-segments.html?contest=${contestId}`
             );
         } catch (error) {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Submit All Scores';
             window.onpopstate = null;
-            if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-                return;
-            }
             if (error.message.includes("already submitted")) {
-                showSuccessModal(
-                    "Submission Blocked",
-                    "You have already submitted scores for this segment.",
-                    `/judge-segments.html?contest=${contestId}`,
-                    `assets/error-icon.png`
-                );
+                showSuccessModal("Submission Blocked", "You have already submitted scores for this segment.", `/judge-segments.html?contest=${contestId}`);
             } else {
                 alert(`An unexpected server error occurred: ${error.message}`);
             }

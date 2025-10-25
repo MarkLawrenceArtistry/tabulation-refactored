@@ -10,6 +10,7 @@
             { href: '/dashboard.html', text: 'Dashboard' },
             { href: '/manage-candidates.html', text: 'Manage Candidates' },
             { href: '/manage-segments.html', text: 'Manage Segments' },
+            { href: '/manage-order.html', text: 'Manage Order & Status' },
             { href: '/monitoring.html', text: 'Monitoring' },
             { href: '/judging-progress.html', text: 'Judging Progress' },
             { href: '/manage-scores.html', text: 'Manage Scores' },

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Candidate Order</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-layout.css">
+    <style>
+        .table-controls { display: flex; gap: 1rem; margin-bottom: 1rem; }
+        .order-input { width: 60px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <aside id="admin-sidebar-container"></aside>
+        <main class="admin-main-content">
+            <h1>Manage Candidate Order & Status</h1>
+            <div class="card">
+                <h2>Select Contest</h2>
+                <select id="contest-select">
+                    <option value="">-- Select a Contest --</option>
+                </select>
+            </div>
+
+            <div id="order-management-section" class="card hidden">
+                <div class="table-controls">
+                    <button id="save-changes-btn">Save All Changes</button>
+                    <button id="open-all-btn">Open All Candidates</button>
+                    <button id="close-all-btn">Close All Candidates</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Display Order</th>
+                                <th>Photo</th>
+                                <th>No.</th>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidates-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="/js/admin-sidebar.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/manage-order.js"></script>
+</body>
+</html>

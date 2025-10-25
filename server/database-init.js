@@ -24,8 +24,8 @@ db.serialize(() => {
     db.run(`CREATE TABLE contests (id INTEGER PRIMARY KEY, name TEXT NOT NULL, image_url TEXT)`);
 
     // Candidates now cascade delete with their contest
-    db.run(`CREATE TABLE candidates (id INTEGER PRIMARY KEY, name TEXT NOT NULL, candidate_number INTEGER NOT NULL, image_url TEXT, branch TEXT, course TEXT, section TEXT, year_level TEXT, contest_id INTEGER NOT NULL, FOREIGN KEY (contest_id) REFERENCES contests(id) ON DELETE CASCADE)`);
-
+    db.run(`CREATE TABLE candidates (id INTEGER PRIMARY KEY, name TEXT NOT NULL, candidate_number INTEGER NOT NULL, image_url TEXT, branch TEXT, course TEXT, section TEXT, year_level TEXT, contest_id INTEGER NOT NULL, display_order INTEGER, status TEXT NOT NULL DEFAULT 'open', FOREIGN KEY (contest_id) REFERENCES contests(id) ON DELETE CASCADE)`);
+    
     // Segments now belong to a contest and include a STATUS column
     db.run(`CREATE TABLE segments (id INTEGER PRIMARY KEY, name TEXT NOT NULL, percentage REAL NOT NULL, type TEXT NOT NULL DEFAULT 'judge', status TEXT NOT NULL DEFAULT 'closed', contest_id INTEGER NOT NULL, FOREIGN KEY (contest_id) REFERENCES contests(id) ON DELETE CASCADE)`);
 
