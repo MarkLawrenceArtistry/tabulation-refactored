@@ -54,6 +54,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('segment-percentage-display').textContent = `(${currentSegment.percentage}% Overall)`; 
     }
 
+    async function handleScoreUnlock() {
+        console.log('Admin unlocked a score, refreshing data...');
+        await fetchData();
+        renderUI();
+        loadScoresFromCache(cacheKey);
+    }
+
     function renderUI() {
         populateAllCandidateCards();
         updateViewMode();
@@ -79,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="criterion-item">
                         <label for="score-${candidate.id}-${c.id}">${c.name} (${c.max_score}%)</label>
                         <input type="number" id="score-${candidate.id}-${c.id}" class="score-input"
-                            min="0" max="${c.max_score}" step="0.01" placeholder="0-${c.max_score}" required
+                            min="5" max="${c.max_score}" step="0.01" placeholder="5-${c.max_score}" required
                             data-candidate-id="${candidate.id}" data-criterion-id="${c.id}" ${isLocked ? 'disabled' : ''} onKeyPress="if(this.value.length==3) return false;">
                     </div>
                 `;
@@ -140,7 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         inputs.forEach(input => {
             const score = parseFloat(input.value);
             const max = parseFloat(input.max);
-            if (input.value.trim() === '' || isNaN(score) || score < 0 || score > max) {
+            if (input.value.trim() === '' || isNaN(score) || score < 5 || score > max) {
                 input.style.borderColor = 'red';
                 isValid = false;
             } else {
@@ -180,6 +187,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    async function handleCandidateStatusUpdate() {
+        if (candidates.length === 0) return;
+
+        const currentCandidateBeforeUpdate = candidates[currentCandidateIndex];
+        const oldIndex = currentCandidateIndex;
+
+        await fetchData();
+
+        const newIndexOfOldCandidate = candidates.findIndex(c => c.id === currentCandidateBeforeUpdate.id);
+
+        if (newIndexOfOldCandidate !== -1) {
+            currentCandidateIndex = newIndexOfOldCandidate;
+        } else {
+            currentCandidateIndex = Math.max(0, oldIndex - 1);
+        }
+
+        renderUI();
+        loadScoresFromCache(cacheKey);
+    }
+
     function setupEventListeners() {
         viewModeToggle.addEventListener('click', () => {
             currentViewMode = currentViewMode === 'carousel' ? 'card' : 'carousel';
@@ -203,6 +230,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 handleLockScores(e.target.dataset.candidateId);
             }
         });
+        window.socket.on('judging_progress_updated', handleScoreUnlock);
     }
 });
 function saveScoresToCache(cacheKey) {

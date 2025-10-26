@@ -64,10 +64,15 @@ document.addEventListener('DOMContentLoaded', () => {
             loadProgressGrid(segmentSelect.value);
         }
     });
-    
-    window.socket.on('update_results', () => {
-        if (segmentSelect.value) loadProgressGrid(segmentSelect.value);
-    });
+
+    const reloadGrid = () => {
+        if (segmentSelect.value) {
+            loadProgressGrid(segmentSelect.value);
+        }
+    };
+
+    window.socket.on('judging_progress_updated', reloadGrid);
+    window.socket.on('candidate_status_changed', reloadGrid);
 
     populateSegments();
 });

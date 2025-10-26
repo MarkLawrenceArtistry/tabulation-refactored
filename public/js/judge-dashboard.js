@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('connect', () => console.log('✅ Judge Dashboard: Connected to WebSocket server'));
     socket.on('segment_status_changed', loadAvailableSegments);
     socket.on('candidate_status_changed', loadAvailableSegments);
+    socket.on('judging_progress_updated', loadAvailableSegments);
 
     loadAvailableSegments();
 });

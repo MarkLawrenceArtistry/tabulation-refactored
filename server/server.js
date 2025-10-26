@@ -373,13 +373,14 @@ app.put('/api/candidates/batch-update', authenticateToken, authorizeRoles('admin
                 return res.status(500).json({ message: "Failed to update candidates." });
             }
             db.run("COMMIT", () => {
-                // After successfully saving, emit a real-time update
+                
                 const firstCandidateId = candidates[0].id;
                 db.get("SELECT contest_id FROM candidates WHERE id = ?", [firstCandidateId], (err, row) => {
                     if (row) {
                         io.emit('candidate_status_changed', { contest_id: row.contest_id });
                     }
                 });
+                io.emit('candidate_status_changed');
                 res.json({ message: "Candidates updated successfully." });
             });
         });
@@ -617,10 +618,11 @@ app.post('/api/judging/scores-for-candidate', authenticateToken, authorizeRoles(
                     db.run("ROLLBACK");
                     return res.status(500).json({ message: "Failed to save scores." });
                 }
-                db.run("COMMIT", () => {
+               db.run("COMMIT", () => {
                     res.status(201).json({ message: "Scores locked." });
                     calculateAndEmitResults();
                     emitKpiUpdate();
+                    io.emit('judging_progress_updated');
                 });
             });
         });
@@ -633,9 +635,15 @@ app.delete('/api/admin/unlock-scores-for-candidate', authenticateToken, authoriz
     const sql = `DELETE FROM scores WHERE judge_id = ? AND candidate_id = ? AND criterion_id IN (SELECT id FROM criteria WHERE segment_id = ?)`;
 
     db.run(sql, [judge_id, candidate_id, segment_id], function(err) {
-        if (err) return res.status(500).json({ message: "DB Error" });
+        if (err) {
+            console.error("DB Error on unlock:", err.message);
+            return res.status(500).json({ message: "DB Error" });
+        }
+        
+        // Use a callback to ensure the emit happens after the DB operation
         calculateAndEmitResults();
         emitKpiUpdate();
+        io.emit('judging_progress_updated');
         res.json({ message: 'Scores unlocked.' });
     });
 });
@@ -903,7 +911,6 @@ app.post('/api/admin/restore', authenticateToken, authorizeRoles('admin', 'super
 
     const tempPath = req.file.path;
 
-    // CRITICAL STEP: Close the current database connection before overwriting the file.
     db.close((err) => {
         if (err) {
             console.error('Error closing database before restore:', err.message);
@@ -912,27 +919,23 @@ app.post('/api/admin/restore', authenticateToken, authorizeRoles('admin', 'super
 
         console.log('Database closed. Proceeding with file replacement.');
 
-        // Replace the current database file with the uploaded one.
         fs.rename(tempPath, DB_PATH, (renameErr) => {
             if (renameErr) {
                 console.error('Error replacing database file:', renameErr);
+                fs.unlinkSync(tempPath);
                 return res.status(500).json({ message: 'Failed to restore database file.' });
             }
 
             console.log('Database file replaced successfully. Server will now restart.');
             
-            // Send success response BEFORE shutting down.
             res.json({ message: 'Restore successful. The server is restarting now. Please wait about 10 seconds and then refresh your browser.' });
 
-            // CRITICAL STEP 2: Restart the server to load the new database.
-            // Using process.exit() will trigger an automatic restart if you are using PM2 or nodemon.
             setTimeout(() => {
                 process.exit(1); 
-            }, 1000); // Wait 1 second to ensure the response is sent.
+            }, 1000);
         });
     });
 });
-
 
 // --- ADMIN-SCORED SEGMENT ENDPOINTS ---
 app.get('/api/admin/special-scores', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
