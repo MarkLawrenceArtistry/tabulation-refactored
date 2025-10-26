@@ -90,60 +90,51 @@
 /* Print-specific styles */
 @media print {
     @page {
-        size: landscape;
+        size: letter landscape;
+        margin: 0.5in;
     }
 
     body {
-        background-color: #fff;
-        color: #000;
-        margin: 1cm; /* Add some margin for better printing */
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        background-color: #fff !important;
+        color: #000 !important;
+        margin: 0;
     }
 
-    /* 1. Explicitly hide the UI elements we don't want */
+    .admin-layout, .admin-main-content {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
     #admin-sidebar-container, .report-controls, .admin-main-content > h1 {
         display: none !important;
     }
 
-    /* 2. Reset the layout containers to take up the full page */
-    .admin-layout {
-        display: block; /* Override the flex layout */
-        max-height: none;
-    }
-
-    .admin-main-content {
-        padding: 0;
-        overflow: visible;
-        width: 100%;
-    }
-    
     #report-container {
-        /* The content is now visible by default, no need for complex rules */
+        display: block !important;
     }
 
     .report-table {
-        font-size: 10pt; /* Smaller font for printing */
+        font-size: 8pt;
         page-break-inside: auto;
     }
 
-    .report-table tr {
+    .report-table th, .report-table td {
+        border: 1px solid #ccc !important;
+        color: #000 !important;
+    }
+    
+    .report-table tr, .report-table thead, .report-table tbody {
         page-break-inside: avoid;
         page-break-after: auto;
     }
 
-    .report-table th, .report-table td {
-        border: 1px solid #ccc;
-    }
-
     .candidate-header, .segment-header, .final-score-row {
-        -webkit-print-color-adjust: exact !important; /* Ensures background color prints */
-        color-adjust: exact !important;
-    }
-    
-    .candidate-header {
-        background-color: #e0e0e0 !important;
-        color: #000 !important;
-    }
-    .segment-header {
         background-color: #f0f0f0 !important;
+        color: #000 !important;
     }
 }

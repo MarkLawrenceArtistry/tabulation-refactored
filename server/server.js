@@ -246,6 +246,14 @@ io.on('connection', (socket) => {
         delete activeUsers[socket.id];
         emitKpiUpdate();
     });
+
+    socket.on('admin_force_refresh_all', () => {
+        const user = activeUsers[socket.id];
+        if (user && ['admin', 'superadmin'].includes(user.role)) {
+            console.log(`Admin ${user.username} is forcing a refresh for all clients.`);
+            io.emit('force_refresh');
+        }
+    });
 });
 
 // === API ROUTES ===

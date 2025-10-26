@@ -35,4 +35,9 @@
         localStorage.clear();
         window.location.href = '/login.html';
     });
+
+    window.socket.on('force_refresh', () => {
+        console.log('Refresh command received from server. Reloading...');
+        window.location.reload();
+    });
 })();

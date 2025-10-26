@@ -6,6 +6,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalScoresEl = document.getElementById('total-scores');
     const lastScoreFeedEl = document.getElementById('last-score-feed');
 
+    document.getElementById('force-refresh-btn').addEventListener('click', () => {
+        if (confirm('Are you sure you want to force every connected user (including other admins) to refresh their page?')) {
+            socket.emit('admin_force_refresh_all');
+        }
+    });
+
     // Helper to format uptime from seconds to HH:MM:SS
     function formatUptime(seconds) {
         const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
