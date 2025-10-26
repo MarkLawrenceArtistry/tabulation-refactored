@@ -1,17 +1,16 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const contestId = urlParams.get('contest');
     const segmentId = urlParams.get('segment');
     const segmentName = urlParams.get('segmentName');
 
-    if (!segmentId || !contestId) {
-        alert('Missing segment or contest ID.');
+    if (!segmentId) {
+        alert('Missing segment ID.');
         window.location.href = '/judge-dashboard.html';
         return;
     }
 
     document.getElementById('header-title').textContent = `My Scores: ${decodeURIComponent(segmentName)}`;
-    document.getElementById('back-button').href = `/judge-segments.html?contest=${contestId}`;
+    document.getElementById('back-button').href = `/judge-dashboard.html`;
     const container = document.getElementById('scores-container');
 
     try {

@@ -1,12 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user || user.role === 'judge') {
-        window.location.href = '/login.html';
-        return;
-    }
-
-    const contestSelect = document.getElementById('contest-select');
-    const segmentsManagementSection = document.getElementById('segments-management-section');
     const addSegmentForm = document.getElementById('add-segment-form');
     const addCriteriaForm = document.getElementById('add-criteria-form');
     const segmentsList = document.getElementById('segments-list');
@@ -18,23 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const editForm = document.getElementById('edit-form');
     const editFormFields = document.getElementById('edit-form-fields');
 
-    let selectedContestId = null;
     let currentEditData = {};
 
-    async function populateContests() {
-        const contests = await apiRequest('/api/contests');
-        contests.forEach(c => contestSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`);
-    }
-
-    async function loadSegmentsForContest(contestId) {
-        if (!contestId) {
-            segmentsManagementSection.classList.add('hidden');
-            return;
-        }
-        selectedContestId = contestId;
-        segmentsManagementSection.classList.remove('hidden');
-
-        const segments = await apiRequest(`/api/contests/${contestId}/segments`);
+    async function loadSegments() {
+        const segments = await apiRequest(`/api/segments`);
         const percentageBox = document.getElementById('segment-percentage-box');
         segmentsList.innerHTML = '';
         criteriaSegmentSelect.innerHTML = '<option value="">Select a segment first</option>';
@@ -75,15 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
         percentageBox.style.color = totalWeight === 100 ? '#155724' : '#721c24';
     }
 
-    contestSelect.addEventListener('change', () => loadSegmentsForContest(contestSelect.value));
     criteriaSegmentSelect.addEventListener('change', (e) => e.target.value ? loadCriteriaForSegment(e.target.value) : criteriaDisplay.innerHTML = '');
 
     addSegmentForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const body = { ...Object.fromEntries(new FormData(e.target).entries()), contest_id: selectedContestId };
+        const body = Object.fromEntries(new FormData(e.target).entries());
         await apiRequest('/api/segments', 'POST', body);
         e.target.reset();
-        loadSegmentsForContest(selectedContestId);
+        loadSegments();
     });
 
     addCriteriaForm.addEventListener('submit', async (e) => {
@@ -131,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const apiType = type === 'criterion' ? 'criteria' : 'segments';
         await apiRequest(`/api/${apiType}/${id}`, 'PUT', Object.fromEntries(new FormData(e.target).entries()));
         closeModal();
-        loadSegmentsForContest(selectedContestId);
+        loadSegments();
     });
 
     async function handleDeleteClick(button) {
@@ -139,13 +117,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!confirm(`Delete ${type} "${name}"? This is permanent.`)) return;
         const apiType = type === 'criterium' ? 'criteria' : 'segments';
         await apiRequest(`/api/${apiType}/${id}`, 'DELETE');
-        loadSegmentsForContest(selectedContestId);
+        loadSegments();
     }
     
     async function handleToggleStatus(button) {
         await apiRequest(`/api/segments/${button.dataset.id}/status`, 'PUT', { status: button.dataset.newStatus });
-        loadSegmentsForContest(selectedContestId);
+        loadSegments();
     }
 
-    populateContests();
+    loadSegments();
 });

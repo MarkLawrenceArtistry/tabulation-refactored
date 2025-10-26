@@ -10,35 +10,46 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.clear();
         window.location.href = '/login.html';
     });
+    
+    const socket = window.socket;
 
-    loadAvailableContests();
-});
+    async function loadAvailableSegments() {
+        try {
+            const segments = await apiRequest('/api/judging/segments');
+            const container = document.getElementById('segments-container');
+            container.innerHTML = '';
 
-async function loadAvailableContests() {
-    try {
-        const contests = await apiRequest('/api/judging/contests');
-        const container = document.getElementById('contests-container');
-        container.innerHTML = '';
+            if (segments.length === 0) {
+                container.innerHTML = '<p class="card">No segments are currently open for judging.</p>';
+                return;
+            }
 
-        if (contests.length === 0) {
-            container.innerHTML = '<p class="card">All judging is complete. Thank you!</p>';
-            return;
+            segments.forEach(segment => {
+                const card = document.createElement('div');
+                card.className = 'segment-card';
+                
+                let buttonHtml = '';
+                if (segment.is_judged) {
+                    buttonHtml = `<a href="/view-scores.html?segment=${segment.id}&segmentName=${encodeURIComponent(segment.name)}" class="judge-now-btn after">View Submitted Scores</a>`;
+                } else {
+                    buttonHtml = `<a href="/judging-sheet.html?segment=${segment.id}" class="judge-now-btn before">Judge Now &rarr;</a>`;
+                }
+
+                card.innerHTML = `
+                    <h3>${segment.name}</h3>
+                    <p>Overall Weight: ${segment.percentage}%</p>
+                    ${buttonHtml}
+                `;
+                container.appendChild(card);
+            });
+        } catch (error) {
+            document.getElementById('segments-container').innerHTML = '<p class="card">Error loading segments. Please try again later.</p>';
         }
-
-        contests.forEach(contest => {
-            const imageUrl = contest.image_url || '/images/placeholder.png';
-            const card = document.createElement('div');
-            card.className = 'contest-card';
-            card.innerHTML = `
-                <img src="${imageUrl}" alt="${contest.name}">
-                <div class="contest-card-body">
-                    <h3>${contest.name}</h3>
-                    <a href="/judge-segments.html?contest=${contest.id}" class="judge-now-btn">Judge Now &rarr;</a>
-                </div>
-            `;
-            container.appendChild(card);
-        });
-    } catch (error) {
-        document.getElementById('contests-container').innerHTML = '<p class="card">Error loading contests. Please try again later.</p>';
     }
-}
+
+    socket.on('connect', () => console.log('✅ Judge Dashboard: Connected to WebSocket server'));
+    socket.on('segment_status_changed', loadAvailableSegments);
+    socket.on('candidate_status_changed', loadAvailableSegments);
+
+    loadAvailableSegments();
+});

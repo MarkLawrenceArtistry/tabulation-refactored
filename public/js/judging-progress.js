@@ -1,174 +1,73 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user || user.role === 'judge') {
-        window.location.href = '/login.html';
-        return;
-    }
-
-    const contestSelect = document.getElementById('contest-select');
+    const segmentSelect = document.getElementById('segment-select');
     const gridContainer = document.getElementById('progress-grid-container');
-    let isLoading = false;
 
-   socket.on('connect', () => console.log('✅ Connected to WebSocket server'));
-
-    // 1. Populate the contest dropdown
-    async function populateContests() {
-        try {
-            const contests = await apiRequest('/api/contests');
-            contests.forEach(contest => {
-                const option = document.createElement('option');
-                option.value = contest.id;
-                option.textContent = contest.name;
-                contestSelect.appendChild(option);
-            });
-        } catch (error) {
-            console.error('Failed to load contests:', error);
-        }
+    async function populateSegments() {
+        const segments = await apiRequest('/api/segments');
+        segments.filter(s => s.type === 'judge').forEach(segment => {
+            segmentSelect.innerHTML += `<option value="${segment.id}">${segment.name}</option>`;
+        });
     }
 
-    // 2. Fetch data and render the grid
-    async function loadProgressGrid(contestId) {
-        if (!contestId) {
-            gridContainer.innerHTML = '<p>Please select a contest to view the progress.</p>';
+    async function loadProgressGrid(segmentId) {
+        if (!segmentId) {
+            gridContainer.innerHTML = '<p>Please select a segment to view progress.</p>';
             return;
         }
-
-        if (isLoading) {
-            console.log("Progress grid load already in progress. Skipping.");
-            return;
-        }
-        isLoading = true;
-
         gridContainer.innerHTML = '<p>Loading progress...</p>';
-
-        try {
-            const statusData = await apiRequest(`/api/admin/judging-status?contest_id=${contestId}`);
-            if (statusData.length === 0) {
-                gridContainer.innerHTML = '<p>No segments or judges found for this contest.</p>';
-                return;
-            }
-            renderGrid(statusData);
-        } catch (error) {
-            gridContainer.innerHTML = '<p>Failed to load judging progress.</p>';
-        } finally {
-            isLoading = false; // <<< --- ADD THIS FINALLY BLOCK
-        }
+        const data = await apiRequest(`/api/admin/judging-status-by-segment?segment_id=${segmentId}`);
+        renderGrid(data, segmentId);
     }
     
-    // 3. Helper function to pivot data and build the HTML table
-    function renderGrid(data) {
-        const judges = [...new Set(data.map(item => item.judge_name))].sort();
-        const segments = {};
-
-        // Group data by segment, now including IDs
-        data.forEach(item => {
-            if (!segments[item.segment_name]) {
-                segments[item.segment_name] = {
-                    segment_id: item.segment_id,
-                    statuses: {}
-                };
-            }
-            segments[item.segment_name].statuses[item.judge_name] = {
-                is_submitted: item.is_submitted,
-                judge_id: item.judge_id
-            };
-        });
-
-        let tableHtml = '<table class="progress-grid"><thead><tr><th>Segment</th>';
-        judges.forEach(judge => {
-            tableHtml += `<th>${judge}</th>`;
-        });
+    function renderGrid(data, segmentId) {
+        if (!data.judges || data.judges.length === 0) {
+            gridContainer.innerHTML = '<p>No judges found in the system.</p>';
+            return;
+        }
+        if (!data.candidates || data.candidates.length === 0) {
+            gridContainer.innerHTML = '<p>No candidates are currently open for this segment.</p>';
+            return;
+        }
+        
+        let tableHtml = '<table class="progress-grid"><thead><tr><th>Candidate</th>';
+        data.judges.forEach(judge => tableHtml += `<th>${judge.username}</th>`);
         tableHtml += '</tr></thead><tbody>';
 
-        for (const segmentName in segments) {
-            const segmentInfo = segments[segmentName];
-            tableHtml += `<tr><td>${segmentName}</td>`;
-            judges.forEach(judge => {
-                const statusInfo = segmentInfo.statuses[judge];
-                const isSubmitted = statusInfo.is_submitted;
-                const buttonClass = isSubmitted ? 'status-submitted' : 'status-pending';
-                const buttonText = isSubmitted ? 'Unlock' : 'Pending';
-                const isDisabled = !isSubmitted ? 'disabled' : '';
-
-                // Add data attributes for the unlock action
-                const dataAttributes = isSubmitted ? 
-                    `data-judge-id="${statusInfo.judge_id}" data-segment-id="${segmentInfo.segment_id}" data-judge-name="${judge}" data-segment-name="${segmentName}"` 
-                    : '';
-
-                tableHtml += `
-                    <td class="status-cell">
-                        <button class="${buttonClass}" ${isDisabled} ${dataAttributes}>
-                            ${buttonText}
-                        </button>
-                    </td>`;
+        data.candidates.forEach(candidate => {
+            tableHtml += `<tr><td>#${candidate.candidate_number} - ${candidate.name}</td>`;
+            data.judges.forEach(judge => {
+                const isLocked = data.lockedMap[`${judge.id}:${candidate.id}`];
+                const buttonText = isLocked ? 'Unlock' : 'Pending';
+                const buttonClass = isLocked ? 'status-submitted' : 'status-pending';
+                const isDisabled = isLocked ? '' : 'disabled';
+                const dataAttrs = isLocked ? `data-judge-id="${judge.id}" data-candidate-id="${candidate.id}" data-segment-id="${segmentId}"` : '';
+                
+                tableHtml += `<td class="status-cell"><button class="${buttonClass}" ${isDisabled} ${dataAttrs}>${buttonText}</button></td>`;
             });
             tableHtml += '</tr>';
-        }
-
+        });
         tableHtml += '</tbody></table>';
         gridContainer.innerHTML = tableHtml;
     }
 
-    // --- EVENT LISTENERS ---
-    contestSelect.addEventListener('change', () => {
-        loadProgressGrid(contestSelect.value);
-    });
+    segmentSelect.addEventListener('change', () => loadProgressGrid(segmentSelect.value));
 
     gridContainer.addEventListener('click', async (e) => {
-        // Target only the green "Unlock" buttons that are not disabled
-        if (!e.target.matches('button.status-submitted:not(:disabled)')) {
-            return;
-        }
-
+        if (!e.target.matches('button.status-submitted')) return;
         const button = e.target;
-        const { judgeId, segmentId, judgeName, segmentName } = button.dataset;
+        const { judgeId, candidateId, segmentId } = button.dataset;
 
-        const confirmation = confirm(
-            `ARE YOU SURE?\n\n` +
-            `This will UNLOCK the "${segmentName}" segment for judge "${judgeName}".\n\n` +
-            `This will delete their previously submitted scores for this segment, and they will be required to submit them again. This action cannot be undone.`
-        );
-
-        if (confirmation) {
-            try {
-                button.disabled = true;
-                button.textContent = 'Unlocking...';
-                
-                await apiRequest('/api/admin/unlock-scores', 'DELETE', {
-                    judge_id: parseInt(judgeId, 10),
-                    segment_id: parseInt(segmentId, 10)
-                });
-                
-                // NOTE: We don't need to manually update the UI here.
-                // The backend call to calculateAndEmitResults() will trigger the socket listener,
-                // which automatically re-renders the whole grid with the updated state.
-                
-            } catch (error) {
-                alert(`Failed to unlock segment: ${error.message}`);
-                // Re-enable button on failure
-                button.disabled = false;
-                button.textContent = 'Unlock';
-            }
+        if (confirm('Are you sure you want to unlock this candidate for this judge? Their previous scores will be deleted.')) {
+            button.disabled = true;
+            button.textContent = 'Unlocking...';
+            await apiRequest('/api/admin/unlock-scores-for-candidate', 'DELETE', { judge_id: judgeId, candidate_id: candidateId, segment_id: segmentId });
+            loadProgressGrid(segmentSelect.value);
         }
     });
-
-    // Listen for real-time updates
-    socket.on('update_results', () => {
-        const selectedContestId = contestSelect.value;
-        if (selectedContestId) {
-            // Briefly highlight the container to show an update happened
-            gridContainer.style.transition = 'none';
-            gridContainer.style.backgroundColor = 'rgba(201, 163, 116, 0.2)';
-            setTimeout(() => {
-                gridContainer.style.transition = 'background-color 0.5s ease';
-                gridContainer.style.backgroundColor = 'transparent';
-            }, 100);
-
-            // Reload the grid to show the new status
-            loadProgressGrid(selectedContestId);
-        }
+    
+    window.socket.on('update_results', () => {
+        if (segmentSelect.value) loadProgressGrid(segmentSelect.value);
     });
 
-    // --- INITIALIZATION ---
-    populateContests();
+    populateSegments();
 });

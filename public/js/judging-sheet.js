@@ -1,12 +1,10 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const contestId = urlParams.get('contest');
     const segmentId = urlParams.get('segment');
 
     const user = JSON.parse(localStorage.getItem('user'));
     const cacheKey = `cachedScores_judge_${user.id}_segment_${segmentId}`;
 
-    const form = document.getElementById('judging-form');
     const cardsContainer = document.getElementById('judging-cards-container');
     const viewModeToggle = document.getElementById('view-mode-toggle');
     const prevBtn = document.getElementById('prev-candidate-btn');
@@ -17,38 +15,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentCandidateIndex = 0;
     let candidates = [];
     let criteria = [];
+    let lockedCandidateIds = [];
 
-    if (!contestId || !segmentId) {
-        alert('Missing contest or segment ID.');
+    if (!segmentId) {
+        alert('Missing segment ID.');
         window.location.href = '/judge-dashboard.html';
         return;
     }
-
-    socket.on('candidate_status_changed', async (data) => {
-        if (data.contest_id == contestId) {
-            console.log('Candidate status changed, intelligently refreshing list...');
-
-            const currentCandidateId = candidates[currentCandidateIndex]?.id;
-
-            await fetchData();
-
-            let newIndex = 0;
-            if (currentCandidateId) {
-                const foundIndex = candidates.findIndex(c => c.id === currentCandidateId);
-                if (foundIndex !== -1) {
-                    newIndex = foundIndex;
-                }
-            }
-            currentCandidateIndex = newIndex;
-
-            renderUI();
-            
-            loadScoresFromCache(cacheKey);
-        }
-    });
     
     document.getElementById('back-to-dashboard').onclick = () => {
-        window.location.href = `/judge-segments.html?contest=${contestId}`;
+        window.location.href = `/judge-dashboard.html`;
     };
 
     try {
@@ -58,17 +34,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupEventListeners();
     } catch (error) {
         console.error('Failed to initialize judging sheet:', error);
-        window.location.href = `/judge-segments.html?contest=${contestId}`;
+        window.location.href = `/judge-dashboard.html`;
     }
 
     async function fetchData() {
-        [criteria, candidates] = await Promise.all([
+        const [crit, cands, locked] = await Promise.all([
             apiRequest(`/api/judging/segments/${segmentId}/criteria`),
-            apiRequest(`/api/judging/contests/${contestId}/candidates`)
+            apiRequest(`/api/judging/candidates`),
+            apiRequest(`/api/judging/segments/${segmentId}/locked-candidates`)
         ]);
+        criteria = crit;
+        candidates = cands;
+        lockedCandidateIds = locked.map(c => c.candidate_id);
         
-        const segmentsForContest = await apiRequest(`/api/judging/contests/${contestId}/segments`);
-        const currentSegment = segmentsForContest.find(s => s.id == segmentId);
+        const allSegments = await apiRequest(`/api/segments`);
+        const currentSegment = allSegments.find(s => s.id == segmentId);
         
         document.getElementById('segment-name-header').textContent = currentSegment.name;
         document.getElementById('segment-percentage-display').textContent = `(${currentSegment.percentage}% Overall)`; 
@@ -82,11 +62,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     function populateAllCandidateCards() {
         cardsContainer.innerHTML = '';
         if (candidates.length === 0) {
-            cardsContainer.innerHTML = '<p>There are no candidates for this segment.</p>';
+            cardsContainer.innerHTML = '<p class="card">There are no candidates currently open for judging in this segment.</p>';
+            document.getElementById('carousel-nav').classList.add('hidden');
             return;
         }
 
         candidates.forEach(candidate => {
+            const isLocked = lockedCandidateIds.includes(candidate.id);
             const card = document.createElement('div');
             card.className = 'candidate-judging-card';
             card.dataset.candidateId = candidate.id;
@@ -98,7 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <label for="score-${candidate.id}-${c.id}">${c.name} (${c.max_score}%)</label>
                         <input type="number" id="score-${candidate.id}-${c.id}" class="score-input"
                             min="0" max="${c.max_score}" step="0.01" placeholder="0-${c.max_score}" required
-                            data-candidate-id="${candidate.id}" data-criterion-id="${c.id}">
+                            data-candidate-id="${candidate.id}" data-criterion-id="${c.id}" ${isLocked ? 'disabled' : ''} onKeyPress="if(this.value.length==3) return false;">
                     </div>
                 `;
             });
@@ -116,6 +98,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="criteria-list">
                         ${criteriaHtml}
                     </div>
+                    <button type="button" class="lock-scores-btn" data-candidate-id="${candidate.id}" ${isLocked ? 'disabled' : ''}>
+                        ${isLocked ? 'Scores Locked ✓' : 'Lock Scores'}
+                    </button>
                 </div>
             `;
             cardsContainer.appendChild(card);
@@ -132,24 +117,67 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.body.classList.add('view-card');
             document.body.classList.remove('view-carousel');
             viewModeToggle.textContent = 'View Carousel Mode';
-            const allCards = cardsContainer.querySelectorAll('.candidate-judging-card');
-            allCards.forEach(c => c.classList.remove('active'));
+            cardsContainer.querySelectorAll('.candidate-judging-card').forEach(c => c.classList.remove('active'));
         }
     }
 
     function showCurrentCandidateInCarousel() {
-        const allCards = cardsContainer.querySelectorAll('.candidate-judging-card');
-        allCards.forEach((card, index) => {
-            if (index === currentCandidateIndex) {
-                card.classList.add('active');
-            } else {
-                card.classList.remove('active');
-            }
+        if (candidates.length === 0) return;
+        cardsContainer.querySelectorAll('.candidate-judging-card').forEach((card, index) => {
+            card.classList.toggle('active', index === currentCandidateIndex);
         });
-
         carouselStatus.textContent = `Candidate ${currentCandidateIndex + 1} of ${candidates.length}`;
         prevBtn.disabled = currentCandidateIndex === 0;
         nextBtn.disabled = currentCandidateIndex === candidates.length - 1;
+    }
+    
+    async function handleLockScores(candidateId) {
+        const card = cardsContainer.querySelector(`.candidate-judging-card[data-candidate-id='${candidateId}']`);
+        const inputs = card.querySelectorAll('.score-input');
+        const lockBtn = card.querySelector('.lock-scores-btn');
+        let isValid = true;
+        
+        inputs.forEach(input => {
+            const score = parseFloat(input.value);
+            const max = parseFloat(input.max);
+            if (input.value.trim() === '' || isNaN(score) || score < 0 || score > max) {
+                input.style.borderColor = 'red';
+                isValid = false;
+            } else {
+                input.style.borderColor = '';
+            }
+        });
+
+        if (!isValid) {
+            alert(`Please fill out all scores correctly for candidate #${card.querySelector('h3').textContent.split(' ')[0]}.`);
+            return;
+        }
+
+        const payload = {
+            segment_id: segmentId,
+            candidate_id: candidateId,
+            scores: Array.from(inputs).map(i => ({
+                criterion_id: i.dataset.criterionId,
+                score: parseFloat(i.value)
+            }))
+        };
+        
+        lockBtn.disabled = true;
+        lockBtn.textContent = 'Locking...';
+        
+        try {
+            await apiRequest('/api/judging/scores-for-candidate', 'POST', payload);
+            lockBtn.textContent = 'Scores Locked ✓';
+            inputs.forEach(i => i.disabled = true);
+            // Check if all are locked and show a final message
+            if (cardsContainer.querySelectorAll('.lock-scores-btn:not(:disabled)').length === 0) {
+                showSuccessModal("Segment Complete!", "You have now scored all available candidates for this segment.", '/judge-dashboard.html');
+            }
+        } catch (error) {
+            alert(`Error locking scores: ${error.message}`);
+            lockBtn.disabled = false;
+            lockBtn.textContent = 'Lock Scores';
+        }
     }
 
     function setupEventListeners() {
@@ -157,108 +185,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentViewMode = currentViewMode === 'carousel' ? 'card' : 'carousel';
             updateViewMode();
         });
-
         nextBtn.addEventListener('click', () => {
             if (currentCandidateIndex < candidates.length - 1) {
                 currentCandidateIndex++;
                 showCurrentCandidateInCarousel();
             }
         });
-
         prevBtn.addEventListener('click', () => {
             if (currentCandidateIndex > 0) {
                 currentCandidateIndex--;
                 showCurrentCandidateInCarousel();
             }
         });
-
-        form.addEventListener('submit', (e) => handleFormSubmission(e, contestId, cacheKey));
         cardsContainer.addEventListener('input', () => saveScoresToCache(cacheKey));
-    }
-
-    async function handleFormSubmission(e, contestId, cacheKey) {
-        e.preventDefault();
-
-        const scoreInputs = document.querySelectorAll('.score-input');
-        
-        let hasFormatErrors = false;
-        scoreInputs.forEach(input => {
-            const score = parseFloat(input.value);
-            const maxScore = parseFloat(input.max);
-            if (input.value.trim() !== '' && (isNaN(score) || score < 0 || score > maxScore)) {
-                input.style.borderColor = 'red';
-                hasFormatErrors = true;
-            } else {
-                input.style.borderColor = '';
+        cardsContainer.addEventListener('click', (e) => {
+            if (e.target.matches('.lock-scores-btn')) {
+                handleLockScores(e.target.dataset.candidateId);
             }
         });
-
-        if (hasFormatErrors) {
-            alert('Please correct invalid scores (must be a number between 0 and the max value).');
-            return;
-        }
-
-        const incompleteCandidates = [];
-        candidates.forEach((candidate, index) => {
-            let isCandidateComplete = true;
-            criteria.forEach(criterion => {
-                const input = document.getElementById(`score-${candidate.id}-${criterion.id}`);
-                if (!input || input.value.trim() === '') {
-                    isCandidateComplete = false;
-                }
-            });
-            if (!isCandidateComplete) {
-                incompleteCandidates.push({ ...candidate, index });
-            }
-        });
-
-        if (incompleteCandidates.length > 0) {
-            const names = incompleteCandidates.map(c => `#${c.number} ${c.name}`).join('\n');
-            alert(`Please complete the scores for the following candidate(s):\n\n${names}`);
-            
-            if (currentViewMode === 'carousel' && incompleteCandidates.length > 0) {
-                currentCandidateIndex = incompleteCandidates[0].index;
-                showCurrentCandidateInCarousel();
-            }
-            return;
-        }
-        
-        const isConfirmed = confirm("All scores are complete. Are you sure you want to submit? This action cannot be undone.");
-        if (!isConfirmed) return;
-
-        const submitBtn = document.getElementById('submit-scores-btn');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting...';
-        history.pushState(null, null, location.href);
-        window.onpopstate = () => history.go(1);
-        
-        const scoresPayload = Array.from(scoreInputs).map(input => ({
-            candidate_id: input.dataset.candidateId,
-            criterion_id: input.dataset.criterionId,
-            score: parseFloat(input.value)
-        }));
-
-        try {
-            await apiRequest('/api/judging/scores', 'POST', { scores: scoresPayload });
-            clearScoresFromCache(cacheKey);
-            showSuccessModal(
-                "Scores Recorded!",
-                "Your scores have been submitted and locked.",
-                `/judge-segments.html?contest=${contestId}`
-            );
-        } catch (error) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit All Scores';
-            window.onpopstate = null;
-            if (error.message.includes("already submitted")) {
-                showSuccessModal("Submission Blocked", "You have already submitted scores for this segment.", `/judge-segments.html?contest=${contestId}`);
-            } else {
-                alert(`An unexpected server error occurred: ${error.message}`);
-            }
-        }
     }
 });
-
 function saveScoresToCache(cacheKey) {
     const scoreInputs = document.querySelectorAll('.score-input');
     const scoresToCache = [];

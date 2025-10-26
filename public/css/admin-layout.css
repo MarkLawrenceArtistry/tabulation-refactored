@@ -12,7 +12,6 @@
     width: 260px;
     min-height: 100vh;
     background-color: var(--form-bg-color);
-    border-right: 1px solid var(--border-color);
     backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
