@@ -890,46 +890,38 @@ app.get('/api/admin/backup', authenticateToken, authorizeRoles('admin', 'superad
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
     const backupFilename = `tabulation_backup_${timestamp}.zip`;
 
-    // Set headers to tell the browser it's a zip file download
-    res.attachment(backupFilename);
-
-    const archive = archiver('zip', {
-        zlib: { level: 9 } // Sets the compression level.
-    });
-
-    // Listen for all archive data to be written
-    archive.on('finish', () => {
-        console.log('Archive stream finished.');
-    });
-
-    // Good practice to catch warnings (e.g., stat failures and other non-blocking errors)
-    archive.on('warning', (err) => {
-        if (err.code === 'ENOENT') {
-            console.warn('Archiver warning:', err);
-        } else {
-            throw err;
-        }
-    });
-
-    // Good practice to catch this error explicitly
-    archive.on('error', (err) => {
-        throw err;
-    });
-
-    // Pipe archive data to the response
-    archive.pipe(res);
-
-    // 1. Add the database file to the archive
-    archive.file(DB_PATH, { name: 'tabulation.db' });
-
-    // 2. Add the entire 'uploads' directory to a folder named 'uploads' inside the zip
-    // Check if the uploads directory exists before trying to add it
-    if (fs.existsSync(UPLOADS_PATH)) {
-        archive.directory(UPLOADS_PATH, 'uploads');
-    }
+    console.log('Checkpointing database before backup...');
     
-    // Finalize the archive (this is when it starts streaming the data)
-    archive.finalize();
+    db.run("PRAGMA wal_checkpoint(TRUNCATE);", (err) => {
+        if (err) {
+            console.error('Database checkpoint failed:', err.message);
+            return res.status(500).json({ message: 'Could not prepare database for backup.' });
+        }
+
+        console.log('Checkpoint successful. Proceeding with archive.');
+        
+        res.attachment(backupFilename);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+
+        archive.on('warning', (err) => {
+            if (err.code !== 'ENOENT') throw err;
+            console.warn('Archiver warning:', err);
+        });
+        archive.on('error', (err) => {
+            console.error('Archiver error:', err);
+            res.status(500).send({ error: err.message });
+        });
+
+        archive.pipe(res);
+
+        archive.file(DB_PATH, { name: 'tabulation.db' });
+
+        if (fs.existsSync(UPLOADS_PATH)) {
+            archive.directory(UPLOADS_PATH, 'uploads');
+        }
+        
+        archive.finalize();
+    });
 });
 
 // For restore, we need a separate multer instance to handle the upload.
