@@ -892,7 +892,8 @@ app.get('/api/admin/backup', authenticateToken, authorizeRoles('admin', 'superad
 
     console.log('Checkpointing database before backup...');
     
-    db.run("PRAGMA wal_checkpoint(TRUNCATE);", (err) => {
+    // The checkpoint command runs first. The entire backup logic is now INSIDE its callback.
+    db.run("PRAGMA wal_checkpoint(TRUNCATE);", function(err) {
         if (err) {
             console.error('Database checkpoint failed:', err.message);
             return res.status(500).json({ message: 'Could not prepare database for backup.' });
@@ -962,8 +963,10 @@ app.post('/api/admin/restore', authenticateToken, authorizeRoles('admin', 'super
             res.json({ message: 'Restore successful. The server is restarting now. Please wait about 10 seconds and then refresh your browser.' });
 
             setTimeout(() => {
-                process.exit(1); 
-            }, 1000);
+                // This is the guaranteed way to trigger a nodemon restart.
+                // It "touches" the current file, updating its modification time.
+                fs.utimesSync(__filename, new Date(), new Date());
+            }, 1000)
         });
     });
 });
