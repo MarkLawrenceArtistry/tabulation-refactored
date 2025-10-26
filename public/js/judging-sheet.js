@@ -13,6 +13,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let currentViewMode = 'carousel';
     let currentCandidateIndex = 0;
+    const filterByBranchSelect = document.getElementById('filter-by-branch');
+    const sortCandidatesSelect = document.getElementById('sort-candidates');
+
+    let currentSort = 'number_asc';
+    let currentFilter = 'all';
+
+    let allCandidates = [];
     let candidates = [];
     let criteria = [];
     let lockedCandidateIds = [];
@@ -29,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
         await fetchData();
-        renderUI();
+        updateDisplay();
         loadScoresFromCache(cacheKey);
         setupEventListeners();
     } catch (error) {
@@ -44,7 +51,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             apiRequest(`/api/judging/segments/${segmentId}/locked-candidates`)
         ]);
         criteria = crit;
-        candidates = cands;
+        allCandidates = cands;
+        populateFiltersAndSorters();
         lockedCandidateIds = locked.map(c => c.candidate_id);
         
         const allSegments = await apiRequest(`/api/segments`);
@@ -52,6 +60,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         document.getElementById('segment-name-header').textContent = currentSegment.name;
         document.getElementById('segment-percentage-display').textContent = `(${currentSegment.percentage}% Overall)`; 
+    }
+
+    function populateFiltersAndSorters() {
+        const branches = [...new Set(allCandidates.map(c => c.branch).filter(Boolean))];
+        filterByBranchSelect.innerHTML = `<option value="all">All Branches</option>`;
+        branches.forEach(branch => {
+            filterByBranchSelect.innerHTML += `<option value="${branch}">${branch}</option>`;
+        });
+
+        sortCandidatesSelect.innerHTML = `
+            <option value="number_asc">Sort by No. (Asc)</option>
+            <option value="number_desc">Sort by No. (Desc)</option>
+            <option value="name_asc">Sort by Name (A-Z)</option>
+            <option value="name_desc">Sort by Name (Z-A)</option>
+        `;
+
+        filterByBranchSelect.value = currentFilter;
+        sortCandidatesSelect.value = currentSort;
+    }
+
+    function updateDisplay() {
+        let filteredCandidates = allCandidates;
+        if (currentFilter !== 'all') {
+            filteredCandidates = allCandidates.filter(c => c.branch === currentFilter);
+        }
+
+        candidates = [...filteredCandidates].sort((a, b) => {
+            switch (currentSort) {
+                case 'number_desc':
+                    return b.candidate_number - a.candidate_number;
+                case 'name_asc':
+                    return a.name.localeCompare(b.name);
+                case 'name_desc':
+                    return b.name.localeCompare(a.name);
+                case 'number_asc':
+                default:
+                    return a.candidate_number - b.candidate_number;
+            }
+        });
+
+        currentCandidateIndex = 0;
+        renderUI();
+        loadScoresFromCache(cacheKey);
     }
 
     async function handleScoreUnlock() {
@@ -186,9 +237,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             await apiRequest('/api/judging/scores-for-candidate', 'POST', payload);
             lockBtn.textContent = 'Scores Locked ✓';
             inputs.forEach(i => i.disabled = true);
-            // Check if all are locked and show a final message
-            if (cardsContainer.querySelectorAll('.lock-scores-btn:not(:disabled)').length === 0) {
+            lockedCandidateIds.push(parseInt(candidateId, 10));
+
+            const allCandidatesAreScored = allCandidates.every(c => lockedCandidateIds.includes(c.id));
+            
+            if (allCandidatesAreScored) {
+                clearScoresFromCache(cacheKey);
                 showSuccessModal("Segment Complete!", "You have now scored all available candidates for this segment.", '/judge-dashboard.html');
+            } else {
+                const allVisibleCandidatesAreScored = candidates.every(c => lockedCandidateIds.includes(c.id));
+                if (allVisibleCandidatesAreScored && currentFilter !== 'all') {
+                    alert("You have unscored candidates in another branch. The filter has been reset to show all.");
+                    currentFilter = 'all';
+                    filterByBranchSelect.value = 'all';
+                    updateDisplay();
+                }
             }
         } catch (error) {
             alert(`Error locking scores: ${error.message}`);
@@ -241,6 +304,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
         window.socket.on('judging_progress_updated', handleScoreUnlock);
+        filterByBranchSelect.addEventListener('change', (e) => {
+            currentFilter = e.target.value;
+            updateDisplay();
+        });
+
+        sortCandidatesSelect.addEventListener('change', (e) => {
+            currentSort = e.target.value;
+            updateDisplay();
+        });
     }
 });
 function saveScoresToCache(cacheKey) {

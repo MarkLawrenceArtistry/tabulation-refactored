@@ -99,3 +99,22 @@ header .header-controls {
     from { opacity: 0; transform: scale(0.98); }
     to { opacity: 1; transform: scale(1); }
 }
+
+header .header-controls {
+    align-items: center;
+    gap: 1rem;
+}
+
+.judging-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.judging-controls select {
+    background-color: rgba(255,255,255,0.1);
+    color: var(--text-dark-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
