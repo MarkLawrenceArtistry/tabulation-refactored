@@ -44,6 +44,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = `/judge-dashboard.html`;
     }
 
+    function handleCandidateDataUpdate(updatedCandidate) {
+        const card = cardsContainer.querySelector(`.candidate-judging-card[data-candidate-id='${updatedCandidate.id}']`);
+        if (!card) return;
+
+        console.log(`Updating data for candidate #${updatedCandidate.candidate_number}`);
+        
+        const details = [updatedCandidate.branch, updatedCandidate.course, updatedCandidate.section, updatedCandidate.year_level].filter(Boolean).join(' - ');
+
+        card.querySelector('.card-image').src = updatedCandidate.image_url || '/images/placeholder.png';
+        card.querySelector('h3').textContent = `#${updatedCandidate.candidate_number} ${updatedCandidate.name}`;
+        card.querySelector('p').textContent = details || 'No additional details';
+
+        const allCandidatesIndex = allCandidates.findIndex(c => c.id === updatedCandidate.id);
+        if (allCandidatesIndex > -1) allCandidates[allCandidatesIndex] = updatedCandidate;
+        
+        const candidatesIndex = candidates.findIndex(c => c.id === updatedCandidate.id);
+        if (candidatesIndex > -1) candidates[candidatesIndex] = updatedCandidate;
+    }
+
     async function fetchData() {
         const [crit, cands, locked] = await Promise.all([
             apiRequest(`/api/judging/segments/${segmentId}/criteria`),
@@ -308,7 +327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentFilter = e.target.value;
             updateDisplay();
         });
-
+        window.socket.on('candidate_data_updated', handleCandidateDataUpdate);
         sortCandidatesSelect.addEventListener('change', (e) => {
             currentSort = e.target.value;
             updateDisplay();

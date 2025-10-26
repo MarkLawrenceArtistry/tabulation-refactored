@@ -111,3 +111,53 @@
 #criteria-percentage-box {
     margin-bottom: 15px;
 }
+
+.sidebar-links details {
+    margin-bottom: 0.5rem;
+}
+
+.sidebar-links summary {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-dark-color);
+    text-decoration: none;
+    padding: 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    list-style: none; /* Hide default arrow */
+}
+
+.sidebar-links summary:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-links summary.active-group {
+    background-color: var(--primary-color);
+    color: var(--dark-color);
+    font-weight: bold;
+}
+
+.sidebar-links .sidebar-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    transition: filter 0.2s ease;
+}
+
+.sidebar-links .summary.active-group .sidebar-icon {
+    filter: brightness(0) invert(0.2);
+}
+
+.sidebar-links .sub-links {
+    padding-left: 2rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+.sidebar-links .sub-links a {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+}

@@ -9,6 +9,7 @@ const multer = require('multer');
 const fs = require('fs');
 const { Server } = require("socket.io");
 const crypto = require('crypto'); // <-- ADD THIS LINE
+const sharp = require('sharp');
 
 // --- CONFIGURATION ---
 const PORT = process.env.PORT || 5015;
@@ -30,13 +31,35 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/node_modules', express.static(path.join(__dirname, '../node_modules')));
 
 // --- FILE UPLOAD SETUP ---
-const storage = multer.diskStorage({ destination: (req, file, cb) => { cb(null, 'uploads/'); }, filename: (req, file, cb) => { cb(null, Date.now() + path.extname(file.originalname)); } });
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // --- DATABASE CONNECTION ---
 const db = new sqlite3.Database(DB_PATH, (err) => { if (err) console.error("DB Connection Error:", err.message); else console.log("Successfully connected to the database."); });
 db.run("PRAGMA foreign_keys = ON;");
 db.run("PRAGMA journal_mode = WAL;");
+
+const processImage = async (req, res, next) => {
+    if (!req.file) {
+        return next();
+    }
+
+    try {
+        const newFilename = `${Date.now()}.webp`;
+        const newPath = path.join(__dirname, '../uploads', newFilename);
+
+        await sharp(req.file.buffer)
+            .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+            .toFormat('webp', { quality: 80 })
+            .toFile(newPath);
+
+        req.file.processedFilename = newFilename;
+        next();
+    } catch (error) {
+        console.error('Image processing error:', error);
+        res.status(500).json({ message: 'Error processing image.' });
+    }
+};
 
 // --- AUTH & RBAC MIDDLEWARE ---
 const authenticateToken = async (req, res, next) => {
@@ -340,13 +363,13 @@ app.put('/api/users/:id', authenticateToken, authorizeRoles('superadmin'), (req,
     }
 });
 app.get('/api/contests', authenticateToken, (req, res) => { db.all("SELECT * FROM contests", [], (err, rows) => res.json(rows)); });
-app.post('/api/contests', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => { const { name } = req.body; const imageUrl = req.file ? `/uploads/${req.file.filename}` : null; db.run('INSERT INTO contests (name, image_url) VALUES (?, ?)', [name, imageUrl], function(err) { res.status(201).json({ id: this.lastID, name, imageUrl }); }); });
+app.post('/api/contests', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), processImage, (req, res) => { const { name } = req.body; const imageUrl = req.file ? `/uploads/${req.file.processedFilename}` : null; db.run('INSERT INTO contests (name, image_url) VALUES (?, ?)', [name, imageUrl], function(err) { res.status(201).json({ id: this.lastID, name, imageUrl }); }); });
 app.delete('/api/contests/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.run('DELETE FROM contests WHERE id = ?', [req.params.id], (err) => res.sendStatus(204)); });
 app.get('/api/contests/:contestId/candidates', authenticateToken, (req, res) => { db.all("SELECT * FROM candidates WHERE contest_id = ? ORDER BY COALESCE(display_order, candidate_number) ASC, candidate_number ASC", [req.params.contestId], (err, rows) => res.json(rows)); });
-app.post('/api/candidates', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => {
+app.post('/api/candidates', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), processImage, (req, res) => {
     const { name, candidate_number, contest_id, branch, course, section, year_level } = req.body;
     if (!name || !candidate_number || !contest_id) return res.status(400).json({ message: "Missing required fields."});
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    const imageUrl = req.file ? `/uploads/${req.file.processedFilename}` : null;
     const sql = `INSERT INTO candidates (name, candidate_number, contest_id, image_url, branch, course, section, year_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
     db.run(sql, [name, candidate_number, contest_id, imageUrl, branch, course, section, year_level], function(err) {
         if(err) return res.status(500).json({message: "DB error creating candidate."});
@@ -478,23 +501,31 @@ app.get('/api/judging/candidates', authenticateToken, authorizeRoles('judge'), (
 });
 
 
-// --- UPDATE (PUT) ROUTES ---
-app.put('/api/contests/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => {
+app.put('/api/contests/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), processImage, (req, res) => {
     const { name } = req.body;
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.existing_image_url; // Keep old image if new one not provided
+    const imageUrl = req.file ? `/uploads/${req.file.processedFilename}` : req.body.existing_image_url;
     db.run('UPDATE contests SET name = ?, image_url = ? WHERE id = ?', [name, imageUrl, req.params.id], function(err) {
         if (err) return res.status(500).json({ message: 'DB Error updating contest.' });
         res.json({ message: 'Contest updated successfully.' });
     });
 });
 
-app.put('/api/candidates/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), (req, res) => {
+app.put('/api/candidates/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), processImage, (req, res) => {
     const { name, candidate_number, branch, course, section, year_level } = req.body;
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.existing_image_url;
+    const imageUrl = req.file ? `/uploads/${req.file.processedFilename}` : req.body.existing_image_url;
+    const candidateId = req.params.id;
+
     const sql = `UPDATE candidates SET name = ?, candidate_number = ?, image_url = ?, branch = ?, course = ?, section = ?, year_level = ? WHERE id = ?`;
-    db.run(sql, [name, candidate_number, imageUrl, branch, course, section, year_level, req.params.id], function(err) {
+    
+    db.run(sql, [name, candidate_number, imageUrl, branch, course, section, year_level, candidateId], function(err) {
         if (err) return res.status(500).json({ message: 'DB Error updating candidate.' });
-        res.json({ message: 'Candidate updated successfully.' });
+        
+        db.get('SELECT * FROM candidates WHERE id = ?', [candidateId], (err, updatedCandidate) => {
+            if (updatedCandidate) {
+                io.emit('candidate_data_updated', updatedCandidate);
+            }
+            res.json({ message: 'Candidate updated successfully.' });
+        });
     });
 });
 
