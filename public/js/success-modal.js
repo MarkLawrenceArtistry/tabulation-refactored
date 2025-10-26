@@ -59,11 +59,12 @@
     });
 
     // allow pressing ESC to close + redirect
-    document.addEventListener('keydown', function escHandler(e) {
-      if (e.key === 'Escape') {
-        closeAndRedirect();
-        document.removeEventListener('keydown', escHandler);
-      }
+    document.addEventListener('keydown', function keydownHandler(e) {
+        if (e.key === 'Escape' || e.key === 'Enter') {
+            e.preventDefault();
+            closeAndRedirect();
+            document.removeEventListener('keydown', keydownHandler);
+        }
     });
   }
 

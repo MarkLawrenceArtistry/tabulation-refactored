@@ -61,8 +61,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    function openModal() { modalOverlay.classList.remove('hidden'); }
-    function closeModal() { modalOverlay.classList.add('hidden'); }
+    function openModal() {
+        modalOverlay.classList.remove('hidden');
+        document.addEventListener('keydown', handleModalKeydown);
+    }
+    function closeModal() {
+        modalOverlay.classList.add('hidden');
+        document.removeEventListener('keydown', handleModalKeydown);
+    }
     document.getElementById('close-modal-btn').addEventListener('click', closeModal);
     document.getElementById('cancel-edit-btn').addEventListener('click', closeModal);
     modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
@@ -117,6 +123,15 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 alert(`Failed to delete user: ${error.message}`);
             }
+        }
+    }
+
+    function handleModalKeydown(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            editForm.querySelector('button[type="submit"]').click();
+        } else if (e.key === 'Escape') {
+            closeModal();
         }
     }
 

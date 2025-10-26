@@ -7,8 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('username-display').textContent = user.username;
     document.getElementById('logout-button').addEventListener('click', () => {
-        localStorage.clear();
-        window.location.href = '/login.html';
+        if (confirm('Are you sure you want to log out?')) {
+            localStorage.clear();
+            window.location.href = '/login.html';
+        }
     });
     
     const socket = window.socket;

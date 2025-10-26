@@ -130,12 +130,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function showCurrentCandidateInCarousel() {
         if (candidates.length === 0) return;
+        
         cardsContainer.querySelectorAll('.candidate-judging-card').forEach((card, index) => {
             card.classList.toggle('active', index === currentCandidateIndex);
         });
+
         carouselStatus.textContent = `Candidate ${currentCandidateIndex + 1} of ${candidates.length}`;
         prevBtn.disabled = currentCandidateIndex === 0;
         nextBtn.disabled = currentCandidateIndex === candidates.length - 1;
+
+        const activeCard = cardsContainer.querySelector('.candidate-judging-card.active');
+        if (activeCard) {
+            const firstInput = activeCard.querySelector('.score-input:not([disabled])');
+            if (firstInput) {
+                setTimeout(() => firstInput.focus(), 150);
+            }
+        }
     }
     
     async function handleLockScores(candidateId) {

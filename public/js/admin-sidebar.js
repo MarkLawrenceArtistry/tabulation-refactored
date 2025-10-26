@@ -52,8 +52,10 @@
         const logoutBtn = document.getElementById('logout-button');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
-                localStorage.clear();
-                window.location.href = '/login.html';
+                if (confirm('Are you sure you want to log out?')) {
+                    localStorage.clear();
+                    window.location.href = '/login.html';
+                }
             });
         }
     }

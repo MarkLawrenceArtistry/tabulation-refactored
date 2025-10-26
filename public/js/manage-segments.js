@@ -40,6 +40,15 @@ document.addEventListener('DOMContentLoaded', () => {
         percentageBox.style.color = totalWeight === 100 ? '#155724' : '#721c24';
     }
 
+    function handleModalKeydown(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            editForm.querySelector('button[type="submit"]').click();
+        } else if (e.key === 'Escape') {
+            closeModal();
+        }
+    }
+
     async function loadCriteriaForSegment(segmentId) {
         const criteria = await apiRequest(`/api/segments/${segmentId}/criteria`);
         const percentageBox = document.getElementById('criteria-percentage-box');
@@ -80,8 +89,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.matches('.btn-toggle-status')) await handleToggleStatus(e.target);
     });
 
-    function openModal() { modalOverlay.classList.remove('hidden'); }
-    function closeModal() { modalOverlay.classList.add('hidden'); }
+    function openModal() {
+        modalOverlay.classList.remove('hidden');
+        document.addEventListener('keydown', handleModalKeydown);
+    }
+    function closeModal() {
+        modalOverlay.classList.add('hidden');
+        document.removeEventListener('keydown', handleModalKeydown);
+    }
     document.getElementById('close-modal-btn').addEventListener('click', closeModal);
     document.getElementById('cancel-edit-btn').addEventListener('click', closeModal);
 
