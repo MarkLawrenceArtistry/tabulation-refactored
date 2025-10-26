@@ -95,8 +95,8 @@
     }
 
     body {
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
+        --webkit-print-color-adjust: exact !important;
+        --color-adjust: exact !important;
         background-color: #fff !important;
         color: #000 !important;
         margin: 0;
