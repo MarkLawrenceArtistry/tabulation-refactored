@@ -48,7 +48,7 @@ header h1 {
     font-size: 1.6rem; /* Slightly adjusted font size */
     font-weight: 600;
     color: var(--text-dark-color);
-    margin: 0;
+    margin-left: 10px;
     text-align: center;
     flex: 0 1 auto; 
 }
@@ -56,15 +56,15 @@ header h1 {
 /* This group selector styles BOTH types of "Back" buttons */
 header .nav-button,
 header #back-to-dashboard {
-    background-color: var(--primary-color);
-    color: var(--dark-color);
+    background-color: #5a5a5a;
+    color: var(--text-dark-color);
 
     /* UPDATED: Increased padding and border-radius for the new look */
     padding: 0.8rem 1.6rem;
     border-radius: 12px;
 
     text-decoration: none;
-    font-weight: 500;
+    font-weight: bold;
     border: none;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -313,7 +313,7 @@ li {
 .segments-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 2rem;
+    gap: 6rem;
 }
 
 /* This is the new, user-friendly segment card design.
