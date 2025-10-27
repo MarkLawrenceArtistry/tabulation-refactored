@@ -99,11 +99,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         sortCandidatesSelect.value = currentSort;
     }
 
-    function updateDisplay() {
+    function updateDisplay(preferredCandidateId = null) {
         let filteredCandidates = allCandidates;
         if (currentFilter !== 'all') {
             filteredCandidates = allCandidates.filter(c => c.branch === currentFilter);
         }
+
+        // Store the old index before the list is rebuilt.
+        const oldIndex = currentCandidateIndex;
 
         candidates = [...filteredCandidates].sort((a, b) => {
             switch (currentSort) {
@@ -112,7 +115,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 case 'name_desc':
                     return b.name.localeCompare(a.name);
                 case 'official_desc':
-                    // This logic correctly handles custom display_order and falls back to candidate_number
                     const orderA_desc = a.display_order != null ? a.display_order : Infinity;
                     const orderB_desc = b.display_order != null ? b.display_order : Infinity;
                     if (orderA_desc !== orderB_desc) {
@@ -121,7 +123,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return b.candidate_number - a.candidate_number;
                 case 'official_asc':
                 default:
-                    // This logic correctly handles custom display_order and falls back to candidate_number
                     const orderA_asc = a.display_order != null ? a.display_order : Infinity;
                     const orderB_asc = b.display_order != null ? b.display_order : Infinity;
                     if (orderA_asc !== orderB_asc) {
@@ -131,7 +132,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-        currentCandidateIndex = 0;
+        if (preferredCandidateId) {
+            const newIndex = candidates.findIndex(c => c.id === preferredCandidateId);
+
+            if (newIndex !== -1) {
+                // The candidate still exists, so we set the index to their new position
+                currentCandidateIndex = newIndex;
+            } else {
+                // The preferred candidate was removed. We'll try to stay at the same
+                // numerical index, but we must cap it at the new end of the list.
+                currentCandidateIndex = Math.min(oldIndex, candidates.length > 0 ? candidates.length - 1 : 0);
+            }
+        } else {
+            // This is for actions like filtering or sorting, where resetting is expected.
+            currentCandidateIndex = 0;
+        }
+
         renderUI();
         loadScoresFromCache(cacheKey);
     }
@@ -372,8 +388,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         window.socket.on('candidate_status_changed', async () => {
             console.log("A candidate's status has been updated by an admin. Refreshing list...");
-            await fetchData(); // Fetch fresh candidate data from the server
-            updateDisplay();   // Re-render the UI with the new data
+
+            // Get the current candidate's ID BEFORE fetching new data.
+            // Use optional chaining (?.) in case the candidates array is empty.
+            const currentCandidateId = candidates[currentCandidateIndex]?.id;
+
+            // Fetch fresh candidate data from the server
+            await fetchData(); 
+
+            // Re-render the UI, passing the ID of the candidate we want to stay on.
+            updateDisplay(currentCandidateId);
         });
     }
 });
