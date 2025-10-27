@@ -370,7 +370,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentSort = e.target.value;
             updateDisplay();
         });
-        window.socket.on('candidate_status_changed', updateDisplay);
+        window.socket.on('candidate_status_changed', async () => {
+            console.log("A candidate's status has been updated by an admin. Refreshing list...");
+            await fetchData(); // Fetch fresh candidate data from the server
+            updateDisplay();   // Re-render the UI with the new data
+        });
     }
 });
 function saveScoresToCache(cacheKey) {
