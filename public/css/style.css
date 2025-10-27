@@ -310,8 +310,8 @@ li {
 /* Use a responsive grid that looks good on all screen sizes */
 .segments-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 5rem;
 }
 
 /* This is the new, user-friendly segment card design.
@@ -326,7 +326,7 @@ li {
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    position: relative;
+    position:static;
     overflow: hidden;
 }
 
@@ -348,13 +348,15 @@ li {
 
 .segment-card h3 {
     margin-top: 0;
-    font-size: 1.5rem;
+    font-size: 2rem;
     color: var(--primary-color); /* Gold title for emphasis */
+    text-align: center;
 }
 
 .segment-card p {
     color: var(--text-light-color);
-    line-height: 1.6;
+    line-height: 3; 
+    font-size: 20px;
 }
 
 /* Add this new page title style */

@@ -138,6 +138,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 html += `</tbody></table>`;
                 html += `<br>`;
+                html += `<br>`;
+                html += `<br>`;
+                html += `<br>`;
             }
             else if (segment.type === 'judge' && criteriaForSegment.length > 0) {
                 html += `<table class="report-table">`;
