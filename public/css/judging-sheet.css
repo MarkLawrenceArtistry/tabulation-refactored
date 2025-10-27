@@ -1,29 +1,79 @@
+/* --- *** UPDATED HEADER & JUDGING CONTROLS STYLES *** --- */
+
 header {
-    justify-content: space-between;
+    display: flex;
+    align-items: center;
+    /* Allows items to stack on small screens */
+    flex-wrap: wrap; 
+    /* Adds space between stacked items */
+    gap: 1rem; 
+    justify-content: space-between; /* Default alignment */
 }
+
+/* 2. Title styling - flex-grow is the key to perfect centering */
 header h1 {
-    flex-grow: 1;
+    /* On small screens, the title takes the full width and is centered */
+    width: 100%; 
     text-align: center;
+    /* Puts the title at the top when items stack */
+    order: -1; 
+    margin: 0rem 2rem 0rem 25rem; /* Removed the problematic fixed margin */
+    font-size: 1.5rem; /* A good size for mobile */
 }
-header #back-to-dashboard, 
-header .header-controls {
-    flex-basis: 200px;
-}
-header #back-to-dashboard {
-    justify-self: flex-start;
-}
+
 header .header-controls {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+    /* On small screens, the controls also take the full width and center themselves */
+    width: 100%;
+    justify-content: center;
 }
-#view-mode-toggle {
-    background-color: rgba(255,255,255,0.1);
+
+/* 4. Group for the two dropdowns */
+.judging-controls {
+    display: flex;
+    gap: 0.75rem; /* Space between the two dropdowns */
+}
+
+/* 5. Unified styling for ALL controls on the right to match the image */
+.judging-controls select,
+header #view-mode-toggle {
+    background-color: #5a5a5a; /* The dark grey from your image */
     color: var(--text-dark-color);
-    border: 1px solid var(--border-color);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px; /* Rounded corners */
+    padding: 0.7rem 1.2rem;
+    font-size: 0.9rem;
+    font-family: inherit; /* Ensures consistent font */
+    -webkit-appearance: none; /* Removes default OS styling */
+    appearance: none;
+    cursor: pointer;
+    white-space: nowrap; /* Prevents text from wrapping */
+    font-weight: bold;
 }
-#view-mode-toggle:hover {
-    background-color: rgba(255,255,255,0.2);
+
+/* Add a subtle hover effect */
+
+.judging-controls select:hover{
+    background-color: #5a5a5a;
+
 }
+header #view-mode-toggle:hover {
+    background-color: #c9a374;
+}
+
+/* Styling for the dropdown arrow */
+.judging-controls select {
+    background-image: url("data:image/svg+xml;charset=UTF8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    background-size: 1em;
+    padding-right: 2.5rem; /* Make space for the arrow */
+}
+
+
+/* --- CAROUSEL & VIEW MODE STYLES (Your original code, no changes needed) --- */
 
 .carousel-nav-container {
     display: flex;
@@ -86,7 +136,7 @@ header .header-controls {
     display: none;
     width: 100%;
     max-width: 450px;
-    animation: fadeIn 0.5s ease;
+    animation: spotlightReveal 1s ease;
 }
 .view-carousel .candidate-judging-card.active {
     display: flex;
@@ -95,45 +145,40 @@ header .header-controls {
     display: flex;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.98); }
-    to { opacity: 1; transform: scale(1); }
+@keyframes spotlightReveal {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+        /* Starts as a tiny circle in the middle */
+        clip-path: circle(0% at 50% 50%);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+        /* Expands to a circle large enough to reveal the whole card */
+        clip-path: circle(75% at 50% 50%);
+    }
 }
 
-header .header-controls {
-    align-items: center;
-    gap: 1rem;
+/* This code only applies when the screen is 992px wide or larger */
+@media (min-width: 992px) {
+    /* Restore the single-line layout */
+    header {
+        flex-wrap: nowrap;
+    }
+
+    /* Make the title flexible and centered again */
+    header h1 {
+        width: auto; /* Allow it to shrink */
+        flex-grow: 1; /* Let it take up the available space */
+        order: 0; /* Put it back in its natural order */
+        font-size: 1.8rem; /* Larger font for desktop */
+    }
+
+    /* Put the controls back on the right side */
+    header .header-controls {
+        width: auto; /* Allow it to shrink */
+        justify-content: flex-end;
+    }
 }
 
-.judging-controls {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.judging-controls select {
-    background-color: rgba(255,255,255,0.1);
-    color: var(--text-dark-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-}
-
-.lock-scores-btn {
-    width: 100%;
-    padding: 1rem;
-    font-size: 1.1rem;
-    border-radius: 8px;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-}
-
-.lock-scores-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-}
-
-.lock-scores-btn:disabled {
-    background-color: #6c757d; /* Neutral Gray */
-    color: #ccc;
-    cursor: not-allowed;
-    border: none;
-}

@@ -56,13 +56,11 @@ header h1 {
 /* This group selector styles BOTH types of "Back" buttons */
 header .nav-button,
 header #back-to-dashboard {
-    background-color: var(--primary-color);
-    color: var(--dark-color);
-
-    /* UPDATED: Increased padding and border-radius for the new look */
+    background-color: #5a5a5a;
+    color: var(--text-dark-color);
     padding: 0.8rem 1.6rem;
     border-radius: 12px;
-
+    font-weight: bold;
     text-decoration: none;
     font-weight: 500;
     border: none;
@@ -73,7 +71,7 @@ header #back-to-dashboard {
 
 header .nav-button:hover,
 header #back-to-dashboard:hover {
-    background-color: var(--primary-darker-color);
+    background-color: var(--primary-color);
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0,0,0,0.5);
 }
