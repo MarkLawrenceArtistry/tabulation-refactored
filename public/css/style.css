@@ -643,6 +643,7 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
     transition: transform 0.2s ease-in-out;
     border: 1px solid var(--border-color); /* UPDATED */
     backdrop-filter: blur(10px); /* UPDATED */
+    position: relative;
 }
 
 .candidate-judging-card:hover {

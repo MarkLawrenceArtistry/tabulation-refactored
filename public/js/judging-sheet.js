@@ -237,6 +237,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const details = [candidate.branch, candidate.course, candidate.section, candidate.year_level].filter(Boolean).join(' - ');
 
             card.innerHTML = `
+                <button type="button" class="card-nav-btn card-nav-prev">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M10.8284 12.0007L15.7782 16.9504L14.364 18.3646L8 12.0007L14.364 5.63672L15.7782 7.05093L10.8284 12.0007Z"></path></svg>
+                </button>
+                <button type="button" class="card-nav-btn card-nav-next">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13.1714 12.0007L8.22168 7.05093L9.63589 5.63672L15.9999 12.0007L9.63589 18.3646L8.22168 16.9504L13.1714 12.0007Z"></path></svg>
+                </button>
                 <img src="${imageUrl}" alt="${candidate.name}" class="card-image">
                 <div class="card-content">
                     <div class="validation-status-container">${isLocked ? 'Thank you for submitting.' : 'Enter scores in the input boxes below.'}</div>
@@ -394,7 +400,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             saveScoresToCache(cacheKey);
         });
         cardsContainer.addEventListener('click', (e) => {
-            if (e.target.matches('.lock-scores-btn')) {
+            const prevButton = e.target.closest('.card-nav-prev');
+            const nextButton = e.target.closest('.card-nav-next');
+
+            if (prevButton) {
+                prevBtn.click();
+            } else if (nextButton) {
+                nextBtn.click();
+            } else if (e.target.matches('.lock-scores-btn')) {
                 handleLockScores(e.target.dataset.candidateId);
             }
         });

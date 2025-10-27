@@ -10,6 +10,7 @@ const fs = require('fs');
 const { Server } = require("socket.io");
 const crypto = require('crypto'); // <-- ADD THIS LINE
 const sharp = require('sharp');
+const os = require('os');
 
 // --- CONFIGURATION ---
 const PORT = process.env.PORT || 5015;
@@ -151,10 +152,11 @@ const calculateAndEmitResults = () => {
             cand.name as candidate_name, 
             cand.candidate_number, 
             cand.image_url, 
+            cand.branch,
             cont.id as contest_id, 
             cont.name as contest_name, 
             fs.total_score 
-        FROM candidates cand 
+        FROM candidates cand
         JOIN contests cont ON cand.contest_id = cont.id 
         LEFT JOIN FinalScores fs ON cand.id = fs.candidate_id 
         ORDER BY cont.id, fs.total_score DESC;
@@ -507,7 +509,13 @@ app.get('/api/judging/candidates', authenticateToken, authorizeRoles('judge'), (
         res.json(rows);
     });
 });
-
+app.get('/api/contests/:contestId/branches', authenticateToken, (req, res) => {
+    const sql = "SELECT DISTINCT branch FROM candidates WHERE contest_id = ? AND branch IS NOT NULL AND branch != '' ORDER BY branch";
+    db.all(sql, [req.params.contestId], (err, rows) => {
+        if (err) return res.status(500).json({ message: "DB Error." });
+        res.json(rows.map(r => r.branch));
+    });
+});
 
 app.put('/api/contests/:id', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('image'), processImage, (req, res) => {
     const { name } = req.body;
@@ -753,6 +761,22 @@ app.get('/api/admin/kpis', authenticateToken, authorizeRoles('admin', 'superadmi
     });
 });
 
+function getLocalIpAddress() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return '127.0.0.1'; // Fallback for localhost
+}
+
+app.get('/api/admin/server-info', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    res.json({ ipAddress: getLocalIpAddress() });
+});
+
 // --- AWARDS & PUBLIC RESULTS ---
 app.get('/api/awards', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { db.all("SELECT * FROM awards", [], (err, rows) => res.json(rows)); });
 app.post('/api/awards', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => { const { name, type } = req.body; db.run('INSERT INTO awards (name, type) VALUES (?, ?)', [name, type], function (err) { if (err) return res.status(409).json({ message: "Award exists." }); res.status(201).json({ id: this.lastID, name, type }); }); });
@@ -767,7 +791,7 @@ app.get('/api/public-winners', (req, res) => { const sql = `SELECT a.name as awa
 
 // --- FULL TABULATION REPORT ENDPOINT ---
 app.get('/api/reports/full-tabulation', authenticateToken, authorizeRoles('admin', 'superadmin'), async (req, res) => {
-    const { contest_id } = req.query;
+    const { contest_id, branch } = req.query;
     if (!contest_id) {
         return res.status(400).json({ message: "Contest ID is required." });
     }
@@ -780,7 +804,14 @@ app.get('/api/reports/full-tabulation', authenticateToken, authorizeRoles('admin
         const contestSql = `SELECT name FROM contests WHERE id = ?`;
         const segmentsSql = `SELECT id, name, percentage, type FROM segments ORDER BY id`;
         const criteriaSql = `SELECT id, name, max_score, segment_id FROM criteria ORDER BY segment_id, id`;
-        const candidatesSql = `SELECT id, name, candidate_number FROM candidates WHERE contest_id = ? ORDER BY candidate_number`;
+        
+        let candidatesSql = `SELECT id, name, candidate_number FROM candidates WHERE contest_id = ?`;
+        const candidateParams = [contest_id];
+        if (branch && branch !== 'all') {
+            candidatesSql += ` AND branch = ?`;
+            candidateParams.push(branch);
+        }
+        candidatesSql += ` ORDER BY candidate_number`;
         const judgesSql = `SELECT id, username FROM users WHERE role = 'judge' ORDER BY id`;
         const scoresSql = `SELECT judge_id, candidate_id, criterion_id, score FROM scores WHERE contest_id = ?`;
         const adminScoresSql = `SELECT candidate_id, segment_id, score FROM admin_scores WHERE contest_id = ?`;
@@ -797,7 +828,7 @@ app.get('/api/reports/full-tabulation', authenticateToken, authorizeRoles('admin
             dbAll(contestSql, [contest_id]),
             dbAll(segmentsSql, []),
             dbAll(criteriaSql, []),
-            dbAll(candidatesSql, [contest_id]),
+            dbAll(candidatesSql, candidateParams),
             dbAll(judgesSql, []),
             dbAll(scoresSql, [contest_id]),
             dbAll(adminScoresSql, [contest_id])

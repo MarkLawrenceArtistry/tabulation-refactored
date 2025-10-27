@@ -1,9 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Polyfill for jspdf ---
     window.es5_Promise = Promise;
 
-    // --- ELEMENTS ---
     const contestSelect = document.getElementById('contest-select');
+    const branchSelect = document.getElementById('branch-filter-select');
     const topNSelect = document.getElementById('top-n-select');
     const generateBtn = document.getElementById('generate-report-btn');
     const exportControls = document.getElementById('export-controls');
@@ -12,9 +11,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportXlsxBtn = document.getElementById('export-xlsx-btn');
     const reportContainer = document.getElementById('report-container');
 
-    let currentReportData = null; // Store the fetched report data
+    let currentReportData = null;
 
-    // 1. Populate the contest dropdown on page load
+    async function populateBranchFilter(contestId) {
+        if (!contestId) {
+            branchSelect.innerHTML = '<option value="all">All Branches</option>';
+            branchSelect.style.display = 'none';
+            return;
+        }
+        try {
+            const branches = await apiRequest(`/api/contests/${contestId}/branches`);
+            if (branches.length > 0) {
+                branchSelect.innerHTML = '<option value="all">All Branches</option>';
+                branches.forEach(branch => {
+                    branchSelect.innerHTML += `<option value="${branch}">${branch}</option>`;
+                });
+                branchSelect.style.display = 'inline-block';
+            } else {
+                branchSelect.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Failed to load branches:', error);
+            branchSelect.style.display = 'none';
+        }
+    }
+
     async function populateContests() {
         try {
             const contests = await apiRequest('/api/contests');
@@ -24,14 +45,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 option.textContent = contest.name;
                 contestSelect.appendChild(option);
             });
+            if (contests.length > 0) {
+                await populateBranchFilter(contests[0].id);
+            }
         } catch (error) {
             console.error('Failed to load contests:', error);
         }
     }
 
-    // 2. Main function to fetch and render the report
     async function generateReport() {
         const contestId = contestSelect.value;
+        const branch = branchSelect.value;
         if (!contestId) {
             alert('Please select a contest.');
             return;
@@ -43,7 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
         generateBtn.textContent = 'Generating...';
 
         try {
-            currentReportData = await apiRequest(`/api/reports/full-tabulation?contest_id=${contestId}`);
+            const url = `/api/reports/full-tabulation?contest_id=${contestId}&branch=${branch}`;
+            currentReportData = await apiRequest(url);
             renderReport();
             exportControls.classList.remove('hidden');
         } catch (error) {
@@ -296,7 +321,6 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.writeFile(wb, fileName);
     }
 
-    // 5. (REWRITTEN) EXPORT TO PDF WITH PAGINATION
     function exportToPDF() {
         if (!currentReportData) {
             alert("Please generate a report first.");
@@ -308,41 +332,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const { jsPDF } = window.jspdf;
         const reportElement = document.getElementById('report-container');
 
-        // Add the print-friendly class to the body
         document.body.classList.add('pdf-export-mode');
 
         html2canvas(reportElement, {
-            scale: 2, // Higher scale for better quality
+            scale: 2,
             logging: false,
             useCORS: true
         }).then(canvas => {
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
                 orientation: 'landscape',
-                unit: 'pt', // Use points for standard sizing
+                unit: 'pt',
                 format: 'a4'
             });
 
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-
-            const canvasWidth = canvas.width;
-            const canvasHeight = canvas.height;
-
-            // Calculate the ratio to fit the canvas image to the PDF's width
-            const ratio = canvasWidth / pdfWidth;
-            const scaledCanvasHeight = canvasHeight / ratio;
-
+            const ratio = canvas.width / pdfWidth;
+            const scaledCanvasHeight = canvas.height / ratio;
             let heightLeft = scaledCanvasHeight;
             let position = 0;
 
-            // Add the first page
             pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, scaledCanvasHeight);
             heightLeft -= pdfHeight;
 
-            // Loop to add new pages if the content is taller than one page
             while (heightLeft > 0) {
-                position -= pdfHeight; // Move the image "up" to show the next part
+                position -= pdfHeight;
                 pdf.addPage();
                 pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, scaledCanvasHeight);
                 heightLeft -= pdfHeight;
@@ -351,21 +366,19 @@ document.addEventListener('DOMContentLoaded', () => {
             pdf.save(`${currentReportData.contestName.replace(/ /g, '_')}_Report.pdf`);
 
         }).finally(() => {
-            // CRUCIAL: Always remove the class afterwards
             document.body.classList.remove('pdf-export-mode');
             exportPdfBtn.textContent = 'Export as PDF';
             exportPdfBtn.disabled = false;
         });
     }
 
-    // 6. Event Listeners
+    contestSelect.addEventListener('change', () => populateBranchFilter(contestSelect.value));
     generateBtn.addEventListener('click', generateReport);
-    topNSelect.addEventListener('change', renderReport); // Re-render when filter changes
+    topNSelect.addEventListener('change', renderReport);
     
     printBtn.addEventListener('click', () => window.print());
     exportXlsxBtn.addEventListener('click', exportToXLSX);
     exportPdfBtn.addEventListener('click', exportToPDF);
 
-    // --- INITIALIZATION ---
     populateContests();
 });

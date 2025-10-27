@@ -65,11 +65,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initial Data Load ---
     async function initialLoad() {
         try {
-            const initialKpis = await apiRequest('/api/admin/kpis');
+            const [initialKpis, serverInfo] = await Promise.all([
+                apiRequest('/api/admin/kpis'),
+                apiRequest('/api/admin/server-info')
+            ]);
             updateDashboard(initialKpis);
+            document.getElementById('server-ip').textContent = serverInfo.ipAddress;
         } catch (error) {
             console.error("Failed to load initial KPI data:", error);
-            // Handle error, maybe show a message on the dashboard
+            document.getElementById('server-ip').textContent = 'Error';
         }
     }
 

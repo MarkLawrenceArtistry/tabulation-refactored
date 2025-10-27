@@ -2,12 +2,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const LEADERBOARD_LIMIT = 10;
     const tableBody = document.getElementById('results-table-body');
     const contestSelect = document.getElementById('contest-leaderboard-select');
+    const branchSelect = document.getElementById('branch-filter-select');
     const leaderboardTitle = document.getElementById('leaderboard-title');
     const firstPlace = document.getElementById('first-place');
     const secondPlace = document.getElementById('second-place');
     const thirdPlace = document.getElementById('third-place');
     
-
     let fullResults = {};
     let previousRanks = {};
     let rowPositions = {};
@@ -35,27 +35,27 @@ document.addEventListener('DOMContentLoaded', () => {
         populateContestSelector(Object.keys(groupedResults));
         const selectedContest = contestSelect.value || Object.keys(fullResults)[0];
         try {
+            updateBranchFilter(selectedContest);
             renderPodium(selectedContest);
             renderResultsForContest(selectedContest);
         } finally {
-            isLoading = false; // <<< --- SET FLAG TO FALSE AFTER RENDERING
+            isLoading = false;
         }
     });
 
     contestSelect.addEventListener('change', () => {
-        // --- THIS IS THE FIX ---
-        // Reset all state-tracking variables to force a clean render
-        previousPodium = {
-            first: { id: null, score: null },
-            second: { id: null, score: null },
-            third: { id: null, score: null }
-        };
+        previousPodium = { first: { id: null, score: null }, second: { id: null, score: null }, third: { id: null, score: null } };
         previousRanks = {};
         rowPositions = {};
-        // Clear the table body immediately for a snappier user experience
         tableBody.innerHTML = '<tr><td colspan="5">Loading results...</td></tr>';
-        // --- END OF FIX ---
+        
+        const selectedContest = contestSelect.value;
+        updateBranchFilter(selectedContest);
+        renderPodium(selectedContest);
+        renderResultsForContest(selectedContest);
+    });
 
+    branchSelect.addEventListener('change', () => {
         const selectedContest = contestSelect.value;
         renderPodium(selectedContest);
         renderResultsForContest(selectedContest);
@@ -79,16 +79,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (contestNames.includes(currentSelection)) {
             contestSelect.value = currentSelection;
+        } else if (contestNames.length > 0) {
+            contestSelect.value = contestNames[0];
         }
+    }
+
+    function updateBranchFilter(contestName) {
+        const results = fullResults[contestName] || [];
+        const branches = [...new Set(results.map(r => r.branch).filter(Boolean))];
+        
+        if (branches.length > 0) {
+            const currentBranch = branchSelect.value;
+            branchSelect.innerHTML = '<option value="all">All Branches</option>';
+            branches.forEach(branch => {
+                branchSelect.innerHTML += `<option value="${branch}">${branch}</option>`;
+            });
+            branchSelect.style.display = 'inline-block';
+            if (branches.includes(currentBranch)) {
+                branchSelect.value = currentBranch;
+            } else {
+                branchSelect.value = 'all';
+            }
+        } else {
+            branchSelect.style.display = 'none';
+            branchSelect.value = 'all';
+        }
+    }
+    
+    function getFilteredResults(contestName) {
+        const branch = branchSelect.value;
+        const results = fullResults[contestName] || [];
+        if (branch === 'all' || !branch) {
+            return results;
+        }
+        return results.filter(r => r.branch === branch);
     }
 
     function renderPodium(contestName) {
         const contestHasChanged = previousContestName !== contestName;
         previousContestName = contestName;
 
-        const results = fullResults[contestName] || [];
+        const results = getFilteredResults(contestName);
 
-        const sorted = [...results].sort((a, b) => parseFloat(b.total_score) - parseFloat(a.total_score));
+        const sorted = [...results].sort((a, b) => parseFloat(b.total_score || 0) - parseFloat(a.total_score || 0));
         const top3 = [sorted[0], sorted[1], sorted[2]];
 
         const podiums = [
@@ -107,13 +140,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         podiums.forEach((p, i) => {
             const candidate = top3[i];
-            const prevData = previousPodium[p.id]; // Correctly get the previous data object
+            const prevData = previousPodium[p.id];
             
             const newId = candidate?.candidate_number || null;
             const newScore = candidate ? parseFloat(candidate.total_score || 0).toFixed(2) : '0.00';
 
-            // FIX: The update is now also triggered if the contest has changed.
-            // This forces empty slots to be rendered as "N/A", clearing out old candidates.
             if (contestHasChanged || prevData.id !== newId) {
                 const oldElement = p.element;
                 const prevValues = Object.values(previousPodium).map(val => val.id);
@@ -135,10 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         `;
                         oldElement.style.background = gradients[i];
                     } else {
-                        // This block now correctly runs when switching to a contest with fewer than 3 people.
                         oldElement.innerHTML = `
                             <img src="/assets/placeholder.png" alt="Empty">
-                            <div class="podium-name">Empty Candidate</div>
+                            <div class="podium-name">Not Ranked</div>
                             <div class="podium-score">0.00</div>
                             <div class="podium-rank podium-rank-${i + 1}">${rankLabels[i]}</div>
                         `;
@@ -162,7 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 1600);
                 }, 800);
             } 
-            // This runs ONLY when the candidate is the same, but the score is different.
             else if (prevData.id === newId && prevData.score !== newScore) {
                 const scoreElement = p.element.querySelector('.podium-score');
                 if (scoreElement) {
@@ -170,24 +199,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-
-            // YOUR HEIGHT TRANSITION - UNTOUCHED
             requestAnimationFrame(() => {
                 p.element.style.height = `${p.height}px`;
             });
 
-            // Correctly update the state with both id and score
             previousPodium[p.id] = { id: newId, score: newScore };
         });
     }
 
-
-
     function renderResultsForContest(contestName) {
         leaderboardTitle.textContent = `Leaderboard: ${contestName || 'No Contest Selected'}`;
-        const results = fullResults[contestName];
+        const results = getFilteredResults(contestName);
+        
         if (!results || results.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5">No results yet for this contest.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="5">No results yet for this contest and filter.</td></tr>';
             return;
         }
 
@@ -197,16 +222,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (id) rowPositions[id] = row.getBoundingClientRect().top;
         });
 
-        results.sort((a, b) => parseFloat(b.total_score) - parseFloat(a.total_score));
+        results.sort((a, b) => parseFloat(b.total_score || 0) - parseFloat(a.total_score || 0));
 
-        // Create a new array containing only the top N candidates
-        const topResults = results.slice(0, LEADERBOARD_LIMIT); // <<< --- THIS IS THE KEY CHANGE
+        const topResults = results.slice(0, LEADERBOARD_LIMIT);
 
         tableBody.innerHTML = '';
-        topResults.forEach((result, index) => { // <<< --- WE NOW LOOP OVER `topResults`
+        topResults.forEach((result, index) => {
             const rank = index + 1;
             const score = result.total_score ? parseFloat(result.total_score).toFixed(2) : '0.00';
-            // ... (the rest of the loop logic is identical) ...
             const imageUrl = result.image_url || '/images/placeholder.png';
             const prevRank = previousRanks[result.candidate_number];
             let trendHTML = '-';
@@ -242,9 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
             previousRanks[result.candidate_number] = rank;
         });
 
-        // Animate row movement (FLIP)
         const newRows = Array.from(tableBody.querySelectorAll('tr'));
-        // ... (the rest of the animation logic is identical) ...
         newRows.forEach(row => {
             const id = row.dataset.id;
             const oldTop = rowPositions[id];

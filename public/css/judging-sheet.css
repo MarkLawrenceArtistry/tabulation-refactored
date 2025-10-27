@@ -199,3 +199,39 @@ header #view-mode-toggle:hover {
     background-color: rgba(217, 83, 79, 0.2);
     color: #f8d7da;
 }
+
+.card-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-color);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    z-index: 10;
+}
+.card-nav-btn:hover {
+    background-color: var(--primary-color);
+    color: var(--dark-color);
+    transform: translateY(-50%) scale(1.1);
+}
+.card-nav-btn svg {
+    width: 24px;
+    height: 24px;
+}
+.card-nav-prev {
+    left: 10px;
+}
+.card-nav-next {
+    right: 10px;
+}
+.view-carousel .candidate-judging-card.active .card-nav-btn {
+    display: flex;
+}

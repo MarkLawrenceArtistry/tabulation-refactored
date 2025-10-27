@@ -27,9 +27,14 @@
                 <div class="card">
                     <div class="leaderboard-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h2 id="leaderboard-title">Leaderboard</h2>
-                        <select id="contest-leaderboard-select">
-                            <option value="">Loading contests...</option>
-                        </select>
+                        <div style="display: flex; gap: 1rem;">
+                            <select id="branch-filter-select" style="display: none;">
+                                <option value="all">All Branches</option>
+                            </select>
+                            <select id="contest-leaderboard-select">
+                                <option value="">Loading contests...</option>
+                            </select>
+                        </div>
                     </div>
                     <table class="data-table">
                         <thead>
