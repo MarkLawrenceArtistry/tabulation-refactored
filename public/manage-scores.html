@@ -20,9 +20,14 @@
                     <h2>Filter Scores</h2>
                     <form id="filter-form">
                         <select id="contest-filter" name="contest_id">
-                            <option value="">-- All Contests --</option>
+                            <option value="">-- Select Contest --</option>
                         </select>
-                        <!-- Segment and Criteria filters will be added here if needed in future -->
+                        <select id="segment-filter" name="segment_id" disabled>
+                            <option value="">-- All Segments --</option>
+                        </select>
+                        <select id="judge-filter" name="judge_id">
+                            <option value="">-- All Judges --</option>
+                        </select>
                         <button type="submit">Load Scores</button>
                     </form>
                 </div>

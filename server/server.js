@@ -695,12 +695,13 @@ app.delete('/api/admin/unlock-scores-for-candidate', authenticateToken, authoriz
     });
 });
 app.get('/api/scores', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
-    const { contest_id, segment_id, criterion_id } = req.query;
+    const { contest_id, segment_id, judge_id } = req.query;
 
     let sql = `
         SELECT 
             sc.id, sc.score,
             c.name as candidate_name,
+            c.candidate_number,
             j.username as judge_name,
             cr.name as criterion_name,
             s.name as segment_name,
@@ -723,12 +724,12 @@ app.get('/api/scores', authenticateToken, authorizeRoles('admin', 'superadmin'),
         sql += ` AND s.id = ?`;
         params.push(segment_id);
     }
-    if (criterion_id) {
-        sql += ` AND cr.id = ?`;
-        params.push(criterion_id);
+    if (judge_id) {
+        sql += ` AND j.id = ?`;
+        params.push(judge_id);
     }
 
-    sql += ` ORDER BY co.name, s.name, c.name, cr.name`;
+    sql += ` ORDER BY co.name, s.name, c.candidate_number, j.username, cr.name`;
 
     db.all(sql, params, (err, rows) => {
         if (err) {

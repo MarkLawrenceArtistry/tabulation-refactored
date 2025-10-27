@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const segments = await apiRequest(`/api/segments`);
         const percentageBox = document.getElementById('segment-percentage-box');
         segmentsList.innerHTML = '';
-        criteriaSegmentSelect.innerHTML = '<option value="">Select a segment first</option>';
+        criteriaSegmentSelect.innerHTML = '<option value="">-- Select a Judge-Voted Segment --</option>';
         criteriaDisplay.innerHTML = '';
         document.getElementById('criteria-percentage-box').textContent = 'Total: 0%';
 
@@ -24,16 +24,24 @@ document.addEventListener('DOMContentLoaded', () => {
         segments.forEach(segment => {
             totalWeight += Number(segment.percentage);
             const statusClass = segment.status === 'closed' ? 'status-closed' : 'status-open';
+            
             segmentsList.innerHTML += `
                 <li class="segment-list-item" data-id="${segment.id}">
-                    <div><span>${segment.name} (${segment.percentage}%)</span><span class="status-badge ${statusClass}">${segment.status}</span></div>
+                    <div>
+                        <span>${segment.name} (${segment.percentage}%)</span>
+                        <span class="segment-type-badge type-${segment.type}">${segment.type}</span>
+                        <span class="status-badge ${statusClass}">${segment.status}</span>
+                    </div>
                     <div class="actions-cell">
                         <button class="btn-toggle-status" data-id="${segment.id}" data-new-status="${segment.status === 'closed' ? 'open' : 'closed'}">${segment.status === 'closed' ? 'Open' : 'Close'}</button>
                         <button class="btn-edit" data-id="${segment.id}" data-type="segment">Edit</button>
                         <button class="btn-delete" data-id="${segment.id}" data-type="segment" data-name="${segment.name}">Del</button>
                     </div>
                 </li>`;
-            criteriaSegmentSelect.innerHTML += `<option value="${segment.id}">${segment.name}</option>`;
+
+            if (segment.type === 'judge') {
+                criteriaSegmentSelect.innerHTML += `<option value="${segment.id}">${segment.name}</option>`;
+            }
         });
         percentageBox.textContent = `Total: ${totalWeight}%`;
         percentageBox.style.backgroundColor = totalWeight === 100 ? '#d4edda' : '#f8d7da';

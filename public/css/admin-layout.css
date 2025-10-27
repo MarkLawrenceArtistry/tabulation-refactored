@@ -171,3 +171,22 @@
 .admin-actions button {
     width: 100%;
 }
+
+.segment-type-badge {
+    display: inline-block;
+    padding: 0.2em 0.6em;
+    font-size: 0.7em;
+    font-weight: bold;
+    border-radius: 10px;
+    margin-left: 8px;
+    vertical-align: middle;
+    text-transform: uppercase;
+}
+.type-judge {
+    background-color: #6c757d;
+    color: white;
+}
+.type-admin {
+    background-color: #17a2b8;
+    color: white;
+}
