@@ -163,6 +163,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         populateAllCandidateCards();
         updateViewMode();
     }
+
+    function validateCard(card) {
+        const inputs = card.querySelectorAll('.score-input');
+        const statusContainer = card.querySelector('.validation-status-container');
+        let errorMessage = '';
+
+        for (const input of inputs) {
+            const score = parseFloat(input.value);
+            const min = parseFloat(input.min);
+            const max = parseFloat(input.max);
+            const criterionName = input.closest('.criterion-item').querySelector('label').textContent.split(' (')[0];
+
+            if (input.value.trim() === '') {
+                errorMessage = `Score for "${criterionName}" is required.`;
+                break;
+            }
+            if (isNaN(score)) {
+                errorMessage = `Score for "${criterionName}" is not a valid number.`;
+                break;
+            }
+            if (score < min) {
+                errorMessage = `Score for "${criterionName}" must be at least ${min}.`;
+                break;
+            }
+            if (score > max) {
+                errorMessage = `Score for "${criterionName}" cannot exceed ${max}.`;
+                break;
+            }
+        }
+
+        if (errorMessage) {
+            statusContainer.textContent = errorMessage;
+            statusContainer.classList.add('error');
+            return false;
+        } else {
+            statusContainer.textContent = 'Lock the scores if youre finished.';
+            statusContainer.classList.remove('error');
+            return true;
+        }
+    }
     
     function populateAllCandidateCards() {
         cardsContainer.innerHTML = '';
@@ -199,6 +239,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             card.innerHTML = `
                 <img src="${imageUrl}" alt="${candidate.name}" class="card-image">
                 <div class="card-content">
+                    <div class="validation-status-container">${isLocked ? 'Thank you for submitting.' : 'Enter scores in the input boxes below.'}</div>
                     <div class="candidate-info">
                         <h3>#${candidate.candidate_number} ${candidate.name}</h3>
                         <p>${details || 'No additional details'}</p>
@@ -237,8 +278,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         carouselStatus.textContent = `Candidate ${currentCandidateIndex + 1} of ${candidates.length}`;
-        prevBtn.disabled = currentCandidateIndex === 0;
-        nextBtn.disabled = currentCandidateIndex === candidates.length - 1;
+        prevBtn.disabled = candidates.length <= 1;
+        nextBtn.disabled = candidates.length <= 1;
 
         const activeCard = cardsContainer.querySelector('.candidate-judging-card.active');
         if (activeCard) {
@@ -251,51 +292,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     async function handleLockScores(candidateId) {
         const card = cardsContainer.querySelector(`.candidate-judging-card[data-candidate-id='${candidateId}']`);
-        const inputs = Array.from(card.querySelectorAll('.score-input'));
         const lockBtn = card.querySelector('.lock-scores-btn');
-        let errorMessage = '';
-        let firstInvalidInput = null;
-
-        inputs.forEach(input => input.parentElement.style.borderColor = '');
-
-        for (const input of inputs) {
-            const score = parseFloat(input.value);
-            const min = parseFloat(input.min);
-            const max = parseFloat(input.max);
-            const criterionName = input.parentElement.previousElementSibling.textContent.split(' (')[0];
-
-            if (input.value.trim() === '') {
-                errorMessage = `Please enter a score for "${criterionName}".`;
-                firstInvalidInput = input;
-                break; 
-            }
-            if (isNaN(score)) {
-                errorMessage = `The score for "${criterionName}" is not a valid number.`;
-                firstInvalidInput = input;
-                break;
-            }
-            if (score < min) {
-                errorMessage = `The score for "${criterionName}" must be at least ${min}.`;
-                firstInvalidInput = input;
-                break;
-            }
-            if (score > max) {
-                errorMessage = `The score for "${criterionName}" cannot exceed ${max}.`;
-                firstInvalidInput = input;
-                break;
-            }
-        }
-
-        if (errorMessage) {
-            const candidateName = card.querySelector('h3').textContent;
-            alert(`For candidate ${candidateName}:\n\n${errorMessage}`);
-            if (firstInvalidInput) {
-                firstInvalidInput.parentElement.style.borderColor = 'red';
-                firstInvalidInput.focus();
-            }
+        
+        if (!validateCard(card)) {
             return;
         }
 
+        const inputs = card.querySelectorAll('.score-input');
         const payload = {
             segment_id: segmentId,
             candidate_id: candidateId,
@@ -316,8 +319,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (currentViewMode === 'carousel' && currentCandidateIndex < candidates.length - 1) {
                 setTimeout(() => {
-                    currentCandidateIndex++;
-                    showCurrentCandidateInCarousel();
+                    nextBtn.click();
                 }, 500);
             }
 
@@ -368,16 +370,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateViewMode();
         });
         nextBtn.addEventListener('click', () => {
-            if (currentCandidateIndex < candidates.length - 1) {
-                currentCandidateIndex++;
-                showCurrentCandidateInCarousel();
-            }
+            if (candidates.length === 0) return;
+            currentCandidateIndex = (currentCandidateIndex + 1) % candidates.length;
+            showCurrentCandidateInCarousel();
         });
         prevBtn.addEventListener('click', () => {
-            if (currentCandidateIndex > 0) {
-                currentCandidateIndex--;
-                showCurrentCandidateInCarousel();
-            }
+            if (candidates.length === 0) return;
+            currentCandidateIndex = (currentCandidateIndex - 1 + candidates.length) % candidates.length;
+            showCurrentCandidateInCarousel();
         });
         cardsContainer.addEventListener('input', (e) => {
             if (e.target.matches('.score-input')) {
@@ -385,6 +385,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const max = parseFloat(input.max);
                 if (parseFloat(input.value) > max) {
                     input.value = max;
+                }
+                const card = e.target.closest('.candidate-judging-card');
+                if (card) {
+                    validateCard(card);
                 }
             }
             saveScoresToCache(cacheKey);

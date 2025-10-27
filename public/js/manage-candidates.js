@@ -10,12 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const addCandidateForm = document.getElementById('add-candidate-form');
     const candidatesTableBody = document.getElementById('candidates-table-body');
     const candidatesListHeader = document.getElementById('candidates-list-header');
+    const searchInput = document.getElementById('search-candidates-input');
     
     const modalOverlay = document.getElementById('edit-modal-overlay');
     const editForm = document.getElementById('edit-form');
     const editFormFields = document.getElementById('edit-form-fields');
 
     let selectedContestId = null;
+    let allContestCandidates = [];
     let currentEditData = {};
 
     async function populateContests() {
@@ -29,6 +31,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function renderCandidates(candidates) {
+        candidatesTableBody.innerHTML = '';
+        if (candidates.length === 0) {
+            candidatesTableBody.innerHTML = '<tr><td colspan="5">No candidates found.</td></tr>';
+            return;
+        }
+        candidates.forEach(c => {
+            const imageUrl = c.image_url || '/images/placeholder.png';
+            candidatesTableBody.innerHTML += `
+                <tr>
+                    <td><img src="${imageUrl}" alt="${c.name}"></td>
+                    <td>${c.candidate_number}</td>
+                    <td>${c.name}</td>
+                    <td>${c.branch || 'N/A'}</td>
+                    <td class="actions-cell">
+                        <button class="btn-edit" data-id="${c.id}" data-type="candidate">Edit</button>
+                        <button class="btn-delete" data-id="${c.id}" data-type="candidate" data-name="${c.name}">Delete</button>
+                    </td>
+                </tr>`;
+        });
+    }
+    
+    function filterCandidates() {
+        const query = searchInput.value.toLowerCase();
+        if (!query) {
+            renderCandidates(allContestCandidates);
+            return;
+        }
+        const filtered = allContestCandidates.filter(c => 
+            c.name.toLowerCase().includes(query) || 
+            c.candidate_number.toString().includes(query)
+        );
+        renderCandidates(filtered);
+    }
+
     async function loadCandidatesForContest(contestId) {
         if (!contestId) {
             candidatesManagementSection.classList.add('hidden');
@@ -39,28 +76,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const contestName = contestSelect.options[contestSelect.selectedIndex].text;
         candidatesListHeader.textContent = `Existing Candidates for ${contestName}`;
         candidatesTableBody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+        searchInput.value = '';
 
         try {
-            const candidates = await apiRequest(`/api/contests/${contestId}/candidates`);
-            candidatesTableBody.innerHTML = '';
-            if (candidates.length === 0) {
-                candidatesTableBody.innerHTML = '<tr><td colspan="5">No candidates found for this contest.</td></tr>';
-                return;
-            }
-            candidates.forEach(c => {
-                const imageUrl = c.image_url || '/images/placeholder.png';
-                candidatesTableBody.innerHTML += `
-                    <tr>
-                        <td><img src="${imageUrl}" alt="${c.name}"></td>
-                        <td>${c.candidate_number}</td>
-                        <td>${c.name}</td>
-                        <td>${c.branch || 'N/A'}</td>
-                        <td class="actions-cell">
-                            <button class="btn-edit" data-id="${c.id}" data-type="candidate">Edit</button>
-                            <button class="btn-delete" data-id="${c.id}" data-type="candidate" data-name="${c.name}">Delete</button>
-                        </td>
-                    </tr>`;
-            });
+            allContestCandidates = await apiRequest(`/api/contests/${contestId}/candidates`);
+            renderCandidates(allContestCandidates);
         } catch (error) {
             candidatesTableBody.innerHTML = '<tr><td colspan="5">Failed to load candidates.</td></tr>';
         }
@@ -69,6 +89,8 @@ document.addEventListener('DOMContentLoaded', () => {
     contestSelect.addEventListener('change', () => {
         loadCandidatesForContest(contestSelect.value);
     });
+
+    searchInput.addEventListener('input', filterCandidates);
 
     addCandidateForm.addEventListener('submit', async (e) => {
         e.preventDefault();

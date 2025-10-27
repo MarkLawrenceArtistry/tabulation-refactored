@@ -182,3 +182,20 @@ header #view-mode-toggle:hover {
     }
 }
 
+.validation-status-container {
+    padding: 0.75rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+    min-height: 2.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+}
+
+.validation-status-container.error {
+    background-color: rgba(217, 83, 79, 0.2);
+    color: #f8d7da;
+}
