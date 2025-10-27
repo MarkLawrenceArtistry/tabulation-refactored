@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    window.socket.on('judging_progress_updated', reloadGrid);
+    window.socket.on('refresh_progress_grid', reloadGrid);
     window.socket.on('candidate_status_changed', reloadGrid);
 
     populateSegments();

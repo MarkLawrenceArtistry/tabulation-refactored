@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const user = JSON.parse(localStorage.getItem('user'));
     const cacheKey = `cachedScores_judge_${user.id}_segment_${segmentId}`;
+    const sessionKey = `judgeUiState_judge_${user.id}_segment_${segmentId}`;
 
     const cardsContainer = document.getElementById('judging-cards-container');
     const viewModeToggle = document.getElementById('view-mode-toggle');
@@ -36,6 +37,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
         await fetchData();
+
+        const savedIndex = sessionStorage.getItem(sessionKey);
+        if (savedIndex) {
+            const parsedIndex = parseInt(savedIndex, 10);
+            if (!isNaN(parsedIndex)) {
+                currentCandidateIndex = parsedIndex;
+            }
+        }
+
         updateDisplay();
         loadScoresFromCache(cacheKey);
         setupEventListeners();
@@ -136,24 +146,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             const newIndex = candidates.findIndex(c => c.id === preferredCandidateId);
 
             if (newIndex !== -1) {
-                // The candidate still exists, so we set the index to their new position
                 currentCandidateIndex = newIndex;
             } else {
-                // The preferred candidate was removed. We'll try to stay at the same
-                // numerical index, but we must cap it at the new end of the list.
                 currentCandidateIndex = Math.min(oldIndex, candidates.length > 0 ? candidates.length - 1 : 0);
             }
         } else {
-            // This is for actions like filtering or sorting, where resetting is expected.
-            currentCandidateIndex = 0;
+            if (currentCandidateIndex >= candidates.length) {
+                currentCandidateIndex = candidates.length > 0 ? candidates.length - 1 : 0;
+            }
         }
 
         renderUI();
         loadScoresFromCache(cacheKey);
     }
 
-    async function handleScoreUnlock() {
-        console.log('Admin unlocked a score, refreshing data...');
+    async function handleScoresUnlocked() {
+        console.log('An admin has unlocked your scores for a candidate. Refreshing your sheet...');
         await fetchData();
         renderUI();
         loadScoresFromCache(cacheKey);
@@ -378,11 +386,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         nextBtn.addEventListener('click', () => {
             if (candidates.length === 0) return;
             currentCandidateIndex = (currentCandidateIndex + 1) % candidates.length;
+            sessionStorage.setItem(sessionKey, currentCandidateIndex);
             showCurrentCandidateInCarousel();
         });
         prevBtn.addEventListener('click', () => {
             if (candidates.length === 0) return;
             currentCandidateIndex = (currentCandidateIndex - 1 + candidates.length) % candidates.length;
+            sessionStorage.setItem(sessionKey, currentCandidateIndex);
             showCurrentCandidateInCarousel();
         });
         cardsContainer.addEventListener('input', (e) => {
@@ -411,7 +421,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 handleLockScores(e.target.dataset.candidateId);
             }
         });
-        window.socket.on('judging_progress_updated', handleScoreUnlock);
+        window.socket.on('scores_unlocked', handleScoresUnlocked);
         filterByBranchSelect.addEventListener('change', (e) => {
             currentFilter = e.target.value;
             updateDisplay();

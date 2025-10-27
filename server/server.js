@@ -669,7 +669,7 @@ app.post('/api/judging/scores-for-candidate', authenticateToken, authorizeRoles(
                     res.status(201).json({ message: "Scores locked." });
                     calculateAndEmitResults();
                     emitKpiUpdate();
-                    io.emit('judging_progress_updated');
+                    io.emit('refresh_progress_grid');
                 });
             });
         });
@@ -687,10 +687,17 @@ app.delete('/api/admin/unlock-scores-for-candidate', authenticateToken, authoriz
             return res.status(500).json({ message: "DB Error" });
         }
         
-        // Use a callback to ensure the emit happens after the DB operation
         calculateAndEmitResults();
         emitKpiUpdate();
-        io.emit('judging_progress_updated');
+        
+        io.emit('refresh_progress_grid');
+
+        const targetSocketId = userSocketMap[judge_id];
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('scores_unlocked');
+            console.log(`Sent 'scores_unlocked' event to judge ${judge_id} on socket ${targetSocketId}`);
+        }
+
         res.json({ message: 'Scores unlocked.' });
     });
 });
