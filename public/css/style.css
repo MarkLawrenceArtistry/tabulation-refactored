@@ -696,12 +696,28 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
 }
 
 .criterion-item input.score-input {
-    width: 70px;
-    text-align: center;
+    border: none !important;
+    background: transparent !important;
+    width: 100%;
     padding: 0.5rem;
-    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.score-input-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgba(0,0,0,0.2);
     border: 1px solid var(--border-color);
     border-radius: 4px;
+    width: 100px;
+    max-width: 100%;
+}
+
+.score-input-wrapper span {
+    padding-right: 0.75rem;
+    color: var(--text-light-color);
+    font-weight: bold;
 }
 
 #submit-scores-btn {
@@ -752,4 +768,12 @@ input[type="file"] {
 
 .btn-toggle-status:hover {
     background-color: #5a6268;
+}
+
+.lock-scores-btn.disabled {
+    background-color: #5a6268;;
+}
+
+.lock-scores-btn.disabled:hover {
+    background-color: #78838b;;
 }

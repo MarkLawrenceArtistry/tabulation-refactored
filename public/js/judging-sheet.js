@@ -183,9 +183,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 criteriaHtml += `
                     <div class="criterion-item">
                         <label for="score-${candidate.id}-${c.id}">${c.name} (${c.max_score}%)</label>
-                        <input type="number" id="score-${candidate.id}-${c.id}" class="score-input"
-                            min="5" max="${c.max_score}" step="0.01" placeholder="5-${c.max_score}" required
-                            data-candidate-id="${candidate.id}" data-criterion-id="${c.id}" ${isLocked ? 'disabled' : ''} onKeyPress="if(this.value.length==3) return false;">
+                        <div class="score-input-wrapper">
+                            <input type="number" id="score-${candidate.id}-${c.id}" class="score-input"
+                                min="5" max="${c.max_score}" step="0.01" placeholder="5-${c.max_score}" required
+                                data-candidate-id="${candidate.id}" data-criterion-id="${c.id}" ${isLocked ? 'disabled' : ''}>
+                            <span>%</span>
+                        </div>
                     </div>
                 `;
             });
@@ -203,7 +206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="criteria-list">
                         ${criteriaHtml}
                     </div>
-                    <button type="button" class="lock-scores-btn" data-candidate-id="${candidate.id}" ${isLocked ? 'disabled' : ''}>
+                    <button type="button" class="lock-scores-btn${isLocked ? ' disabled' : ''}" data-candidate-id="${candidate.id}" ${isLocked ? 'disabled' : ''}>
                         ${isLocked ? 'Scores Locked ✓' : 'Lock Scores'}
                     </button>
                 </div>
@@ -253,14 +256,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         let errorMessage = '';
         let firstInvalidInput = null;
 
-        // Reset all borders first
-        inputs.forEach(input => input.style.borderColor = '');
+        inputs.forEach(input => input.parentElement.style.borderColor = '');
 
         for (const input of inputs) {
             const score = parseFloat(input.value);
             const min = parseFloat(input.min);
             const max = parseFloat(input.max);
-            const criterionName = input.previousElementSibling.textContent.split(' (')[0];
+            const criterionName = input.parentElement.previousElementSibling.textContent.split(' (')[0];
 
             if (input.value.trim() === '') {
                 errorMessage = `Please enter a score for "${criterionName}".`;
@@ -288,7 +290,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const candidateName = card.querySelector('h3').textContent;
             alert(`For candidate ${candidateName}:\n\n${errorMessage}`);
             if (firstInvalidInput) {
-                firstInvalidInput.style.borderColor = 'red';
+                firstInvalidInput.parentElement.style.borderColor = 'red';
                 firstInvalidInput.focus();
             }
             return;
@@ -311,6 +313,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             lockBtn.textContent = 'Scores Locked ✓';
             inputs.forEach(i => i.disabled = true);
             lockedCandidateIds.push(parseInt(candidateId, 10));
+
+            if (currentViewMode === 'carousel' && currentCandidateIndex < candidates.length - 1) {
+                setTimeout(() => {
+                    currentCandidateIndex++;
+                    showCurrentCandidateInCarousel();
+                }, 500);
+            }
 
             const allCandidatesAreScored = allCandidates.every(c => lockedCandidateIds.includes(c.id));
             
@@ -370,7 +379,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showCurrentCandidateInCarousel();
             }
         });
-        cardsContainer.addEventListener('input', () => saveScoresToCache(cacheKey));
+        cardsContainer.addEventListener('input', (e) => {
+            if (e.target.matches('.score-input')) {
+                const input = e.target;
+                const max = parseFloat(input.max);
+                if (parseFloat(input.value) > max) {
+                    input.value = max;
+                }
+            }
+            saveScoresToCache(cacheKey);
+        });
         cardsContainer.addEventListener('click', (e) => {
             if (e.target.matches('.lock-scores-btn')) {
                 handleLockScores(e.target.dataset.candidateId);
@@ -389,18 +407,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.socket.on('candidate_status_changed', async () => {
             console.log("A candidate's status has been updated by an admin. Refreshing list...");
 
-            // Get the current candidate's ID BEFORE fetching new data.
-            // Use optional chaining (?.) in case the candidates array is empty.
             const currentCandidateId = candidates[currentCandidateIndex]?.id;
 
-            // Fetch fresh candidate data from the server
             await fetchData(); 
 
-            // Re-render the UI, passing the ID of the candidate we want to stay on.
             updateDisplay(currentCandidateId);
         });
     }
 });
+
+
 function saveScoresToCache(cacheKey) {
     const scoreInputs = document.querySelectorAll('.score-input');
     const scoresToCache = [];
