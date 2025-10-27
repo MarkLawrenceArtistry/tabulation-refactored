@@ -920,7 +920,19 @@ app.get('/api/reports/full-tabulation', authenticateToken, authorizeRoles('admin
         res.status(500).json({ message: "Failed to generate report." });
     }
 });
-
+app.get('/api/admin/open-candidates', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
+    const sql = `
+        SELECT c.name as candidate_name, c.candidate_number, co.name as contest_name
+        FROM candidates c
+        JOIN contests co ON c.contest_id = co.id
+        WHERE c.status = 'open'
+        ORDER BY co.name, c.display_order, c.candidate_number
+    `;
+    db.all(sql, [], (err, rows) => {
+        if (err) return res.status(500).json({ message: 'DB error fetching open candidates.' });
+        res.json(rows);
+    });
+});
 // --- BACKUP & RESTORE ENDPOINTS ---
 const archiver = require('archiver'); // Add this require statement at the top of your server.js file
 const UPLOADS_PATH = path.join(__dirname, '../uploads')

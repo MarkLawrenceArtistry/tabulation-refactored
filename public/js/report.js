@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             if (segment.type === 'admin') {
-                html += `<table class="report-table">`;
+                html += `<div class="report-segment-block"><table class="report-table">`;
                 html += `<thead>
                     <tr>
                         <th class="segment-header" colspan="3">${segment.name} (${segment.percentage}%)</th>
@@ -161,11 +161,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${score}</td>
                     </tr>`;
                 });
-                html += `</tbody></table>`;
-                html += `<br>`;
+                html += `</tbody></table></div>`;
             }
             else if (segment.type === 'judge' && criteriaForSegment.length > 0) {
-                html += `<table class="report-table">`;
+                html += `<div class="report-segment-block"><table class="report-table">`;
                 html += `<thead>
                     <tr>
                         <th class="segment-header" colspan="${3 + criteriaForSegment.length}">${segment.name} (${segment.percentage}%)</th>
@@ -202,12 +201,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     html += `<td><strong>${segmentScore >= 0 ? segmentScore.toFixed(2) : '-'}</strong></td>`;
                     html += `</tr>`;
                 });
-                html += `</tbody></table>`;
-                html += `<br>`;
+                html += `</tbody></table></div>`;
             }
         });
 
-        html += `<table class="report-table">
+        html += `<div class="report-segment-block"><table class="report-table">
             <thead>
                 <tr><th class="segment-header" colspan="3">Final Ranking</th></tr>
                 <tr><th>Rank</th><th>Candidate</th><th>Final Score</th></tr>
@@ -223,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </tr>`;
         });
 
-        html += `</tbody></table>`;
+        html += `</tbody></table></div>`;
         reportContainer.innerHTML = html;
     }
     

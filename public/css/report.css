@@ -91,7 +91,17 @@
 @media print {
     @page {
         size: letter landscape;
-        margin: 0.5in;
+        margin: 1in 0.5in; /* 1-inch top/bottom margin, 0.5-inch left/right */
+    }
+
+
+    .report-table tr, .report-table thead, .report-table tbody {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+
+    .report-segment-block {
+        page-break-inside: avoid;
     }
 
     body {
