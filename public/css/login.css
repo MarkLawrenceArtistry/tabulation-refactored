@@ -229,3 +229,20 @@ button:hover {
     font-size: .9rem;
     color: white;
 }
+
+footer {
+    position: absolute; /* Positions it relative to the body */
+    bottom: 0; /* Pins it to the bottom */
+    left: 0;
+    width: 100%;
+    padding: 1.5rem;
+    text-align: center;
+    z-index: 5; /* Ensures it's on top of the background art */
+}
+
+footer p {
+    color: var(--text-secondary-color); /* Uses your theme's light text color */
+    font-size: 0.8rem;
+    margin: 0.25rem 0; /* Adds a little space between the two lines */
+    opacity: 0.7; /* Makes it even more subtle */
+}
