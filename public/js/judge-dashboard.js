@@ -40,7 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 card.innerHTML = `
                     <h3>${segment.name}</h3>
                     <p>Overall Weight: ${segment.percentage}%</p>
-                    ${buttonHtml}
+                    <div class="button-wrapper">
+                        ${buttonHtml}
+                    </div>
                 `;
                 container.appendChild(card);
             });

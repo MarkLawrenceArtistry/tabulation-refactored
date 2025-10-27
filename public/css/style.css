@@ -594,17 +594,23 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
     flex-grow: 1;
 }
 
+.button-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .judge-now-btn {
     text-decoration: none;
-    padding: 10px; /* UPDATED */
     font-weight: bold; /* UPDATED */
-    width: auto;
-    display: inline;
+    width: 100%;
+    display: block;
     text-align: center;
     color: var(--background-color);
     transition: all ease .3s;
-    border: none;
+    border: 1px solid gray;
     border-radius: 5px;
+    padding: 15px;
 }
 
 .judge-now-btn.after {
@@ -637,7 +643,6 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
     background-color: var(--form-bg-color);
     border-radius: 16px;
     box-shadow: 0 8px 16px var(--shadow-color);
-    overflow: hidden;
     display: flex;
     flex-direction: column;
     transition: transform 0.2s ease-in-out;
@@ -654,6 +659,7 @@ ul li { display: flex; justify-content: space-between; align-items: center; }
     width: 100%;
     height: 100%;
     object-fit:fill;
+     border-radius: 16px 16px 0 0;
 }
 
 .candidate-judging-card .card-content {
