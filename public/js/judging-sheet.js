@@ -312,6 +312,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        const candidateName = card.querySelector('h3').textContent;
+        const confirmed = await showConfirm(
+            'Confirm Submission',
+            `Are you sure you want to lock the scores for ${candidateName}? This action cannot be undone.`,
+            'warning'
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
         const inputs = card.querySelectorAll('.score-input');
         const payload = {
             segment_id: segmentId,
@@ -345,14 +356,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 const allVisibleCandidatesAreScored = candidates.every(c => lockedCandidateIds.includes(c.id));
                 if (allVisibleCandidatesAreScored && currentFilter !== 'all') {
-                    alert("You have unscored candidates in another branch. The filter has been reset to show all.");
+                    await showAlert("Filter Reset", "You have unscored candidates in another branch. The filter has been reset to show all.", "info");
                     currentFilter = 'all';
                     filterByBranchSelect.value = 'all';
                     updateDisplay();
                 }
             }
         } catch (error) {
-            alert(`Error locking scores: ${error.message}`);
+            await showAlert('Error Locking Scores', error.message, 'error');
             lockBtn.disabled = false;
             lockBtn.textContent = 'Lock Scores';
         }
