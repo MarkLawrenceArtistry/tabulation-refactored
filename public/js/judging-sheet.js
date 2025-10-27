@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const filterByBranchSelect = document.getElementById('filter-by-branch');
     const sortCandidatesSelect = document.getElementById('sort-candidates');
 
-    let currentSort = 'number_asc';
+    let currentSort = 'official_asc';
     let currentFilter = 'all';
 
     let allCandidates = [];
@@ -89,8 +89,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         sortCandidatesSelect.innerHTML = `
-            <option value="number_asc">Sort by No. (Asc)</option>
-            <option value="number_desc">Sort by No. (Desc)</option>
+            <option value="official_asc">Sort by Official Order (Default)</option>
+            <option value="official_desc">Sort by Official Order (Reversed)</option>
             <option value="name_asc">Sort by Name (A-Z)</option>
             <option value="name_desc">Sort by Name (Z-A)</option>
         `;
@@ -107,14 +107,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         candidates = [...filteredCandidates].sort((a, b) => {
             switch (currentSort) {
-                case 'number_desc':
-                    return b.candidate_number - a.candidate_number;
                 case 'name_asc':
                     return a.name.localeCompare(b.name);
                 case 'name_desc':
                     return b.name.localeCompare(a.name);
-                case 'number_asc':
+                case 'official_desc':
+                    // This logic correctly handles custom display_order and falls back to candidate_number
+                    const orderA_desc = a.display_order != null ? a.display_order : Infinity;
+                    const orderB_desc = b.display_order != null ? b.display_order : Infinity;
+                    if (orderA_desc !== orderB_desc) {
+                        return orderB_desc - orderA_desc;
+                    }
+                    return b.candidate_number - a.candidate_number;
+                case 'official_asc':
                 default:
+                    // This logic correctly handles custom display_order and falls back to candidate_number
+                    const orderA_asc = a.display_order != null ? a.display_order : Infinity;
+                    const orderB_asc = b.display_order != null ? b.display_order : Infinity;
+                    if (orderA_asc !== orderB_asc) {
+                        return orderA_asc - orderB_asc;
+                    }
                     return a.candidate_number - b.candidate_number;
             }
         });
@@ -220,23 +232,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     async function handleLockScores(candidateId) {
         const card = cardsContainer.querySelector(`.candidate-judging-card[data-candidate-id='${candidateId}']`);
-        const inputs = card.querySelectorAll('.score-input');
+        const inputs = Array.from(card.querySelectorAll('.score-input'));
         const lockBtn = card.querySelector('.lock-scores-btn');
-        let isValid = true;
-        
-        inputs.forEach(input => {
-            const score = parseFloat(input.value);
-            const max = parseFloat(input.max);
-            if (input.value.trim() === '' || isNaN(score) || score < 5 || score > max) {
-                input.style.borderColor = 'red';
-                isValid = false;
-            } else {
-                input.style.borderColor = '';
-            }
-        });
+        let errorMessage = '';
+        let firstInvalidInput = null;
 
-        if (!isValid) {
-            alert(`Please fill out all scores correctly for candidate #${card.querySelector('h3').textContent.split(' ')[0]}.`);
+        // Reset all borders first
+        inputs.forEach(input => input.style.borderColor = '');
+
+        for (const input of inputs) {
+            const score = parseFloat(input.value);
+            const min = parseFloat(input.min);
+            const max = parseFloat(input.max);
+            const criterionName = input.previousElementSibling.textContent.split(' (')[0];
+
+            if (input.value.trim() === '') {
+                errorMessage = `Please enter a score for "${criterionName}".`;
+                firstInvalidInput = input;
+                break; 
+            }
+            if (isNaN(score)) {
+                errorMessage = `The score for "${criterionName}" is not a valid number.`;
+                firstInvalidInput = input;
+                break;
+            }
+            if (score < min) {
+                errorMessage = `The score for "${criterionName}" must be at least ${min}.`;
+                firstInvalidInput = input;
+                break;
+            }
+            if (score > max) {
+                errorMessage = `The score for "${criterionName}" cannot exceed ${max}.`;
+                firstInvalidInput = input;
+                break;
+            }
+        }
+
+        if (errorMessage) {
+            const candidateName = card.querySelector('h3').textContent;
+            alert(`For candidate ${candidateName}:\n\n${errorMessage}`);
+            if (firstInvalidInput) {
+                firstInvalidInput.style.borderColor = 'red';
+                firstInvalidInput.focus();
+            }
             return;
         }
 
@@ -332,6 +370,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentSort = e.target.value;
             updateDisplay();
         });
+        window.socket.on('candidate_status_changed', updateDisplay);
     }
 });
 function saveScoresToCache(cacheKey) {

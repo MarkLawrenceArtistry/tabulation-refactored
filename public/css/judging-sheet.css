@@ -118,3 +118,22 @@ header .header-controls {
     padding: 0.5rem 1rem;
     font-size: 0.9rem;
 }
+
+.lock-scores-btn {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.lock-scores-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.lock-scores-btn:disabled {
+    background-color: #6c757d; /* Neutral Gray */
+    color: #ccc;
+    cursor: not-allowed;
+    border: none;
+}
