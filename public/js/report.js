@@ -319,55 +319,58 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.writeFile(wb, fileName);
     }
 
-    function exportToPDF() {
+    async function exportToPDF() {
         if (!currentReportData) {
-            alert("Please generate a report first.");
-            return;
+            return showAlert('Error', 'Please generate a report first.');
         }
+        
         exportPdfBtn.textContent = 'Generating...';
         exportPdfBtn.disabled = true;
 
-        const { jsPDF } = window.jspdf;
-        const reportElement = document.getElementById('report-container');
+        const contestId = contestSelect.value;
+        const branch = branchSelect.value;
+        const topN = topNSelect.value;
+        const url = `/api/reports/download-pdf?contest_id=${contestId}&branch=${branch}&topN=${topN}`;
 
-        document.body.classList.add('pdf-export-mode');
-
-        html2canvas(reportElement, {
-            scale: 2,
-            logging: false,
-            useCORS: true
-        }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'landscape',
-                unit: 'pt',
-                format: 'a4'
+        try {
+            // 1. Fetch the PDF using the token from localStorage
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
 
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const ratio = canvas.width / pdfWidth;
-            const scaledCanvasHeight = canvas.height / ratio;
-            let heightLeft = scaledCanvasHeight;
-            let position = 0;
-
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, scaledCanvasHeight);
-            heightLeft -= pdfHeight;
-
-            while (heightLeft > 0) {
-                position -= pdfHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, scaledCanvasHeight);
-                heightLeft -= pdfHeight;
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`PDF generation on the server failed: ${errorText}`);
             }
 
-            pdf.save(`${currentReportData.contestName.replace(/ /g, '_')}_Report.pdf`);
+            // 2. Get the PDF data as a Blob
+            const blob = await response.blob();
 
-        }).finally(() => {
-            document.body.classList.remove('pdf-export-mode');
+            // 3. Create a temporary URL for the Blob
+            const downloadUrl = window.URL.createObjectURL(blob);
+            
+            // 4. Create an invisible link to trigger the download
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.setAttribute('download', `tabulation_report_${contestId}.pdf`);
+            document.body.appendChild(link);
+            
+            // 5. Click the link and then clean up
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+
+        } catch (error) {
+            console.error('PDF Download Error:', error);
+            showAlert('Export Failed', error.message);
+        } finally {
+            // 6. Reset the button
             exportPdfBtn.textContent = 'Export as PDF';
             exportPdfBtn.disabled = false;
-        });
+        }
     }
 
     contestSelect.addEventListener('change', () => populateBranchFilter(contestSelect.value));

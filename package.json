@@ -24,6 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.3",
     "multer": "^2.0.2",
+    "puppeteer": "^24.26.1",
     "sharp": "^0.34.4",
     "socket.io": "^4.8.1",
     "sqlite3": "^5.1.7",

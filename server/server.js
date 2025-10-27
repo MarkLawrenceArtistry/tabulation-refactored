@@ -11,6 +11,7 @@ const { Server } = require("socket.io");
 const crypto = require('crypto'); // <-- ADD THIS LINE
 const sharp = require('sharp');
 const os = require('os');
+const puppeteer = require('puppeteer');
 
 // --- CONFIGURATION ---
 const PORT = process.env.PORT || 5015;
@@ -974,6 +975,67 @@ app.get('/api/admin/backup', authenticateToken, authorizeRoles('admin', 'superad
         
         archive.finalize();
     });
+});
+
+app.get('/api/reports/download-pdf', authenticateToken, authorizeRoles('admin', 'superadmin'), async (req, res) => {
+    const { contest_id, branch, topN } = req.query;
+
+    // We construct the URL to the report page as if a user were visiting it
+    const reportUrl = `http://localhost:${PORT}/report.html`;
+
+    let browser;
+    try {
+        browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+        const page = await browser.newPage();
+        
+        // This is a crucial step: we pass the authentication token to the headless browser
+        // so it can make authenticated API requests to fetch the report data.
+        await page.evaluateOnNewDocument(token => {
+            localStorage.setItem('authToken', token);
+        }, req.headers['authorization'].split(' ')[1]);
+        
+        await page.goto(reportUrl, { waitUntil: 'networkidle0' });
+
+        // Now we run JavaScript inside the headless browser to generate the report
+        await page.evaluate((contestId, branch, topNValue) => {
+            document.getElementById('contest-select').value = contestId;
+            // We need to manually trigger the change event if branches depend on it
+            document.getElementById('contest-select').dispatchEvent(new Event('change')); 
+            document.getElementById('branch-filter-select').value = branch;
+            document.getElementById('top-n-select').value = topNValue;
+            document.getElementById('generate-report-btn').click();
+        }, contest_id, branch, topN);
+
+        // Wait for the report table to be populated after the button click
+        await page.waitForSelector('.report-table', { timeout: 30000 }); // Wait up to 30s
+
+        const pdfBuffer = await page.pdf({
+            format: 'Letter',
+            landscape: true,
+            printBackground: true,
+            margin: {
+                top: '0.7in',
+                right: '0.5in',
+                bottom: '0.7in',
+                left: '0.5in'
+            }
+        });
+
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Length': pdfBuffer.length,
+            'Content-Disposition': 'attachment; filename="tabulation_report.pdf"'
+        });
+        res.send(pdfBuffer);
+
+    } catch (error) {
+        console.error('PDF generation failed:', error);
+        res.status(500).send('Could not generate PDF.');
+    } finally {
+        if (browser) {
+            await browser.close();
+        }
+    }
 });
 
 // For restore, we need a separate multer instance to handle the upload.
