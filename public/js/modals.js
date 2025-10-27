@@ -26,14 +26,31 @@ function showModal({ title, message, confirmText = 'OK', cancelText = null, type
 
         const confirmBtn = modalOverlay.querySelector('.modal-btn-confirm');
         const cancelBtn = modalOverlay.querySelector('.modal-btn-cancel');
-        const modalContent = modalOverlay.querySelector('.modal-content-custom');
         
-        setTimeout(() => modalOverlay.classList.add('visible'), 10);
+        // --- Keyboard event handler ---
+        const handleKeyDown = (e) => {
+            // 'Enter' confirms the action
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                closeModal(true);
+            }
+            // 'Escape' cancels the action
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                // If there's a cancel button, resolve as false, otherwise resolve as true (for simple alerts)
+                closeModal(cancelBtn ? false : true);
+            }
+        };
 
         const closeModal = (value) => {
+            // IMPORTANT: Remove the event listener to prevent memory leaks
+            document.removeEventListener('keydown', handleKeyDown);
+            
             modalOverlay.classList.remove('visible');
             modalOverlay.addEventListener('transitionend', () => {
-                document.body.removeChild(modalOverlay);
+                if (document.body.contains(modalOverlay)) {
+                    document.body.removeChild(modalOverlay);
+                }
                 resolve(value);
             }, { once: true });
         };
@@ -44,9 +61,14 @@ function showModal({ title, message, confirmText = 'OK', cancelText = null, type
         }
         modalOverlay.addEventListener('click', (e) => {
             if (e.target === modalOverlay) {
-                closeModal(false);
+                closeModal(cancelBtn ? false : true);
             }
         });
+
+        // Add the listener when the modal is shown
+        document.addEventListener('keydown', handleKeyDown);
+        
+        setTimeout(() => modalOverlay.classList.add('visible'), 10);
     });
 }
 

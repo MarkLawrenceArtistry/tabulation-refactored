@@ -140,7 +140,27 @@ header #view-mode-toggle:hover {
 }
 .view-carousel .candidate-judging-card.active {
     display: flex;
+    flex-direction: row;
+    min-width: 850px;
 }
+
+.view-carousel .candidate-judging-card.active .card-image {
+    height: 100%;
+    width: auto;
+}
+
+.view-carousel .candidate-judging-card.active .card-content {
+    flex-grow: 1;
+}
+
+.view-carousel .candidate-judging-card.active .lock-scores-btn {
+    margin-top: 60px;
+}
+
+.view-carousel .candidate-judging-card.active .criterion-item label {
+    font-size: 1.5rem;
+}
+
 .view-carousel #carousel-nav {
     display: flex;
 }

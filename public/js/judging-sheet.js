@@ -339,6 +339,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             await apiRequest('/api/judging/scores-for-candidate', 'POST', payload);
             lockBtn.textContent = 'Scores Locked ✓';
+            lockBtn.className = "lock-scores-btn disabled"
             inputs.forEach(i => i.disabled = true);
             lockedCandidateIds.push(parseInt(candidateId, 10));
 
