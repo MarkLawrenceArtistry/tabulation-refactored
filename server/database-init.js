@@ -1,3 +1,10 @@
+if (process.env.NODE_ENV === 'production') {
+    console.error('\x1b[31m%s\x1b[0m', 'DANGEROUS OPERATION BLOCKED'); // Red text
+    console.error('You are attempting to run the database initialization script in a production environment.');
+    console.error('This would DELETE ALL LIVE DATA. Operation has been aborted.');
+    process.exit(1); // Exit with an error code
+}
+
 const sqlite3 = require('sqlite3').verbose();
 const DB_PATH = './db/tabulation.db';
 const db = new sqlite3.Database(DB_PATH, (err) => {
