@@ -1,13 +1,13 @@
 {
   "name": "tabulation-refactored",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "./server/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npx nodemon server/server.js",
     "init": "node server/database-init.js",
     "register": "node server/create-superadmin.js",
-    "pm2": "cross-env NODE_ENV=production pm2 start tabulation-system",
+    "pm2": "cross-env NODE_ENV=production pm2 start ./server/server.js --name tabulation-system",
     "pm2-stop": "pm2 stop tabulation-system",
     "pm2-restart": "pm2 restart tabulation-system"
   },
@@ -27,7 +27,8 @@
     "puppeteer": "^24.26.1",
     "sharp": "^0.34.4",
     "socket.io": "^4.8.1",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "pm2": "^7.1.2"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
