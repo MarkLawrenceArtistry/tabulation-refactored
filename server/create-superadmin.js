@@ -1,9 +1,9 @@
-const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
 const readline = require('readline');
+const { openDatabase } = require('./db');
 
 const DB_PATH = './db/tabulation.db';
-const db = new sqlite3.Database(DB_PATH);
+const db = openDatabase(DB_PATH);
 
 const rl = readline.createInterface({
     input: process.stdin,

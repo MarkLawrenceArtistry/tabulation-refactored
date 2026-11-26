@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
+const { openDatabase } = require('./db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
@@ -37,7 +37,10 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // --- DATABASE CONNECTION ---
-const db = new sqlite3.Database(DB_PATH, (err) => { if (err) console.error("DB Connection Error:", err.message); else console.log("Successfully connected to the database."); });
+const db = openDatabase(DB_PATH, (err) => {
+    if (err) console.error("DB Connection Error:", err.message);
+    else console.log("Successfully connected to the database.");
+});
 db.run("PRAGMA foreign_keys = ON;");
 db.run("PRAGMA journal_mode = WAL;");
 
@@ -936,7 +939,8 @@ app.get('/api/admin/open-candidates', authenticateToken, authorizeRoles('admin',
 });
 // --- BACKUP & RESTORE ENDPOINTS ---
 const archiver = require('archiver'); // Add this require statement at the top of your server.js file
-const UPLOADS_PATH = path.join(__dirname, '../uploads')
+const UPLOADS_PATH = path.join(__dirname, '../uploads');
+fs.mkdirSync(UPLOADS_PATH, { recursive: true });
 
 app.get('/api/admin/backup', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
