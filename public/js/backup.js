@@ -23,11 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Get the suggested filename from the response headers
             const contentDisposition = response.headers.get('content-disposition');
-            let filename = `tabulation_backup_${new Date().toISOString()}.zip`; // fallback
+            const safeTimestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            let filename = `tabulation_backup_${safeTimestamp}.zip`;
             if (contentDisposition) {
-                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-                if (filenameMatch.length === 2) {
-                    filename = filenameMatch[1];
+                const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1].trim();
                 }
             }
 
@@ -83,9 +84,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const response = await apiRequest('/api/admin/restore', 'POST', formData);
-            alert(response.message); // Show success message from the server
-            // The server will restart, so the page will become unresponsive.
-            // The user must manually refresh after a few moments.
+            alert(response.message);
+            localStorage.clear();
+            window.location.href = '/#/login';
         } catch (error) {
             alert(`Restore failed: ${error.message}`);
             restoreBtn.disabled = false;

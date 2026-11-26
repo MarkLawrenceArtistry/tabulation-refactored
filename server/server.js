@@ -8,10 +8,11 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const fs = require('fs');
 const { Server } = require("socket.io");
-const crypto = require('crypto'); // <-- ADD THIS LINE
+const crypto = require('crypto');
 const sharp = require('sharp');
 const os = require('os');
 const puppeteer = require('puppeteer');
+const AdmZip = require('adm-zip');
 
 // --- CONFIGURATION ---
 const PORT = process.env.PORT || 5015;
@@ -1045,13 +1046,24 @@ app.get('/api/reports/download-pdf', authenticateToken, authorizeRoles('admin', 
 // For restore, we need a separate multer instance to handle the upload.
 const restoreStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, './'); // Save temporarily in the root project directory
+        cb(null, os.tmpdir());
     },
     filename: (req, file, cb) => {
-        cb(null, 'backup_upload.tmp'); // Use a temporary name
+        cb(null, `tabulation_restore_${Date.now()}.tmp`);
     }
 });
 const uploadRestore = multer({ storage: restoreStorage });
+
+function isZipFile(filePath) {
+    const fd = fs.openSync(filePath, 'r');
+    const header = Buffer.alloc(4);
+    try {
+        fs.readSync(fd, header, 0, 4, 0);
+    } finally {
+        fs.closeSync(fd);
+    }
+    return header[0] === 0x50 && header[1] === 0x4b; // "PK"
+}
 
 app.post('/api/admin/restore', authenticateToken, authorizeRoles('admin', 'superadmin'), uploadRestore.single('backupFile'), (req, res) => {
     if (!req.file) {
@@ -1059,34 +1071,81 @@ app.post('/api/admin/restore', authenticateToken, authorizeRoles('admin', 'super
     }
 
     const tempPath = req.file.path;
+    const stagingDir = path.join(os.tmpdir(), `tabulation_stage_${Date.now()}`);
 
-    db.close((err) => {
-        if (err) {
-            console.error('Error closing database before restore:', err.message);
-            return res.status(500).json({ message: 'Could not prepare for restore.' });
-        }
+    try {
+        const isZip = isZipFile(tempPath);
 
-        console.log('Database closed. Proceeding with file replacement.');
+        if (isZip) {
+            fs.mkdirSync(stagingDir, { recursive: true });
+            const zip = new AdmZip(tempPath);
+            const entries = zip.getEntries();
 
-        fs.rename(tempPath, DB_PATH, (renameErr) => {
-            if (renameErr) {
-                console.error('Error replacing database file:', renameErr);
-                fs.unlinkSync(tempPath);
-                return res.status(500).json({ message: 'Failed to restore database file.' });
+            let stagedDbPath = null;
+            const stagedUploadsDir = path.join(stagingDir, 'uploads');
+            let hasUploadsFolder = false;
+
+            for (const entry of entries) {
+                const normalized = entry.entryName.replace(/\\/g, '/');
+                if (normalized.includes('..') || path.isAbsolute(normalized)) {
+                    throw new Error('Unsafe file path detected in backup archive.');
+                }
+
+                if (normalized === 'tabulation.db' && !entry.isDirectory) {
+                    stagedDbPath = path.join(stagingDir, 'tabulation.db');
+                    fs.writeFileSync(stagedDbPath, entry.getData());
+                } else if (normalized.startsWith('uploads/')) {
+                    hasUploadsFolder = true;
+                    if (!entry.isDirectory) {
+                        const relPath = normalized.slice('uploads/'.length);
+                        if (!relPath) continue;
+                        const destFile = path.join(stagedUploadsDir, relPath);
+                        fs.mkdirSync(path.dirname(destFile), { recursive: true });
+                        fs.writeFileSync(destFile, entry.getData());
+                    }
+                }
             }
 
-            console.log('Database file replaced successfully. Server will now restart.');
-            
-            res.json({ message: 'Restore successful. The server is restarting now. Please wait about 10 seconds and then refresh your browser.' });
+            if (!stagedDbPath) {
+                throw new Error('Backup zip does not contain tabulation.db.');
+            }
 
-            setTimeout(() => {
-                // This is the guaranteed way to trigger a nodemon restart.
-                // It "touches" the current file, updating its modification time.
-                fs.utimesSync(__filename, new Date(), new Date());
-            }, 1000)
+            // 1. Validate & swap database first
+            db.replaceAndReopen(stagedDbPath);
+
+            // 2. Replace uploads/ with photos from the backup zip
+            fs.mkdirSync(UPLOADS_PATH, { recursive: true });
+            for (const existing of fs.readdirSync(UPLOADS_PATH)) {
+                fs.rmSync(path.join(UPLOADS_PATH, existing), { recursive: true, force: true });
+            }
+            if (hasUploadsFolder && fs.existsSync(stagedUploadsDir)) {
+                fs.cpSync(stagedUploadsDir, UPLOADS_PATH, { recursive: true });
+            }
+        } else {
+            // Direct .db file (database only)
+            db.replaceAndReopen(tempPath);
+        }
+
+        calculateAndEmitResults();
+        emitKpiUpdate();
+        res.json({
+            message: isZip
+                ? 'Database and photos restored successfully! Please log in again.'
+                : 'Database restored successfully! Please log in again.'
         });
-    });
+    } catch (err) {
+        console.error('Restore failed:', err.message);
+        res.status(400).json({ message: err.message || 'Failed to restore backup.' });
+    } finally {
+        if (fs.existsSync(tempPath)) {
+            fs.rmSync(tempPath, { force: true });
+        }
+        if (fs.existsSync(stagingDir)) {
+            fs.rmSync(stagingDir, { recursive: true, force: true });
+        }
+    }
 });
+
 
 // --- ADMIN-SCORED SEGMENT ENDPOINTS ---
 app.get('/api/admin/special-scores', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res) => {

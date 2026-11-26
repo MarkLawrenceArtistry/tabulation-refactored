@@ -8,8 +8,35 @@ function normalizeParams(params) {
     return arr.map((p) => (p === undefined ? null : p));
 }
 
+function validateBackupDb(filePath) {
+    const fd = fs.openSync(filePath, 'r');
+    const header = Buffer.alloc(16);
+    try {
+        fs.readSync(fd, header, 0, 16, 0);
+    } finally {
+        fs.closeSync(fd);
+    }
+
+    if (header.toString('utf8') !== 'SQLite format 3\0') {
+        throw new Error('Invalid file. Please unzip your backup and select the tabulation.db file.');
+    }
+
+    const testDb = new DatabaseSync(filePath, { readOnly: true });
+    try {
+        const row = testDb
+            .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+            .get();
+        if (!row) {
+            throw new Error('This SQLite file is not a valid tabulation database.');
+        }
+    } finally {
+        testDb.close();
+    }
+}
+
 class SqliteCompatDatabase {
     constructor(dbPath, callback) {
+        this._dbPath = dbPath;
         this._closed = false;
         try {
             const dir = path.dirname(dbPath);
@@ -96,6 +123,36 @@ class SqliteCompatDatabase {
                 if (cb) cb(lastError);
             }
         };
+    }
+
+    replaceAndReopen(newFilePath) {
+        validateBackupDb(newFilePath);
+
+        const walPath = `${this._dbPath}-wal`;
+        const shmPath = `${this._dbPath}-shm`;
+
+        if (this._db && !this._closed) {
+            try {
+                this._db.prepare('PRAGMA wal_checkpoint(TRUNCATE)').all();
+            } catch (_) {}
+            this._db.close();
+            this._closed = true;
+        }
+
+        if (fs.existsSync(walPath)) fs.unlinkSync(walPath);
+        if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath);
+
+        const dir = path.dirname(this._dbPath);
+        if (dir && dir !== '.') {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+
+        fs.copyFileSync(newFilePath, this._dbPath);
+
+        this._db = new DatabaseSync(this._dbPath);
+        this._closed = false;
+        this._db.prepare('PRAGMA foreign_keys = ON').run();
+        this._db.prepare('PRAGMA journal_mode = WAL').run();
     }
 
     close(cb) {

@@ -35,12 +35,16 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
 
         if (!response.ok) {
             const errorText = await response.text();
+            let errorMessage = errorText || `HTTP error! status: ${response.status}`;
             try {
                 const errorJson = JSON.parse(errorText);
-                throw new Error(errorJson.message || `HTTP error! status: ${response.status}`);
-            } catch (e) {
-                throw new Error(errorText || `HTTP error! status: ${response.status}`);
+                if (errorJson && errorJson.message) {
+                    errorMessage = errorJson.message;
+                }
+            } catch (_) {
+                // Keep plain errorText if not JSON
             }
+            throw new Error(errorMessage);
         }
 
         if (response.status === 204) {

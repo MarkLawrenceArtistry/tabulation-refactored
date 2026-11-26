@@ -35,25 +35,26 @@
 
             <!-- Restore Section -->
             <div class="card">
-                <h2>Restore from Backup</h2>
+                <h2>Restore from Backup (.zip or .db accepted)</h2>
                 <p>
-                    To restore the system, you must first <strong>unzip</strong> your downloaded backup file. 
-                    Then, select the <strong>`tabulation.db`</strong> file from within that unzipped folder.
+                    Select your downloaded <strong><code>.zip</code> backup file</strong> to restore both the
+                    <strong>database and all candidate/contest photos</strong>, or select an extracted
+                    <strong><code>tabulation.db</code></strong> file to restore only the database.
                 </p>
-                
+
                 <div class="warning-box">
                     <h3><strong>WARNING:</strong> This is a destructive action!</h3>
                     <p>
-                        Restoring will completely <strong>erase and overwrite</strong> the current database. 
-                        This does <strong>NOT</strong> restore images, only the contest data and scores.
+                        Restoring will completely <strong>erase and overwrite</strong> the current database
+                        (and photos when restoring from a <code>.zip</code> backup).
                         Any changes made since the backup was created will be lost. This action cannot be undone.
                     </p>
                 </div>
-                
+
                 <form id="restore-form" style="margin-top: 1.5rem;">
-                    <label for="restore-file">Select the `tabulation.db` file from your unzipped backup:</label>
-                    <input type="file" id="restore-file" name="backupFile" accept=".db" required>
-                    <button type="submit" id="restore-btn" class="btn-delete">Restore System from .db File</button>
+                    <label for="restore-file">Select a <code>.zip</code> backup or <code>tabulation.db</code> file:</label>
+                    <input type="file" id="restore-file" name="backupFile" accept=".zip,.db" required>
+                    <button type="submit" id="restore-btn" class="btn-delete">Restore System from File</button>
                 </form>
             </div>
         </main>
